@@ -100,6 +100,7 @@ func addTorrents(ctx context.Context, client *torrent.Client, flags downloadFlag
 				}
 				return t, nil
 			} else if strings.HasPrefix(arg, "http://") || strings.HasPrefix(arg, "https://") {
+				// todo: 通过http来获取torrent, 可以优化为维持长连接
 				response, err := http.Get(arg)
 				if err != nil {
 					return nil, fmt.Errorf("Error downloading torrent file: %s", err)
@@ -108,7 +109,7 @@ func addTorrents(ctx context.Context, client *torrent.Client, flags downloadFlag
 				metaInfo, err := metainfo.Load(response.Body)
 				defer response.Body.Close()
 				if err != nil {
-					return nil, fmt.Errorf("error loading torrent file %q: %s\n", arg, err)
+					return nil, fmt.Errorf("error loading torrent file %q: %s", arg, err)
 				}
 				t, err := client.AddTorrent(metaInfo)
 				if err != nil {
@@ -121,7 +122,7 @@ func addTorrents(ctx context.Context, client *torrent.Client, flags downloadFlag
 			} else {
 				metaInfo, err := metainfo.LoadFromFile(arg)
 				if err != nil {
-					return nil, fmt.Errorf("error loading torrent file %q: %s\n", arg, err)
+					return nil, fmt.Errorf("error loading torrent file %q: %s", arg, err)
 				}
 				t, err := client.AddTorrent(metaInfo)
 				if err != nil {
@@ -129,6 +130,7 @@ func addTorrents(ctx context.Context, client *torrent.Client, flags downloadFlag
 				}
 				return t, nil
 			}
+			// todo: 可能还需要直接从内存加载
 		}()
 		if err != nil {
 			return fmt.Errorf("adding torrent for %q: %w", arg, err)
@@ -145,6 +147,8 @@ func addTorrents(ctx context.Context, client *torrent.Client, flags downloadFlag
 				return
 			case <-t.GotInfo():
 			}
+			
+			// 是否保存torrent
 			if flags.SaveMetainfos {
 				path := fmt.Sprintf("%v.torrent", t.InfoHash().HexString())
 				err := writeMetainfoToFile(t.Metainfo(), path)
@@ -238,6 +242,7 @@ type downloadFlags struct {
 	DownloadCmd
 }
 
+// DownloadCmd download command
 type DownloadCmd struct {
 	SaveMetainfos      bool
 	Mmap               bool           `help:"memory-map torrent data"`
