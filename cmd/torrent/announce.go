@@ -10,6 +10,8 @@ import (
 	"github.com/anacrolix/torrent/tracker/udp"
 )
 
+
+// AnnounceCmd is the format of an announce packet
 type AnnounceCmd struct {
 	Event    udp.AnnounceEvent
 	Port     *uint16
