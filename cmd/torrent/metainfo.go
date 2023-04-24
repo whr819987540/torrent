@@ -30,6 +30,7 @@ func metainfoCmd() (cmd bargle.Command) {
 			Value: &bargle.String{Target: &metainfoPath},
 			AfterParseFunc: func(ctx bargle.Context) error {
 				ctx.AfterParse(func() (err error) {
+					// 我们使用http来传输torrent
 					if strings.HasPrefix(metainfoPath, "http://") || strings.HasPrefix(metainfoPath, "https://") {
 						response, err := http.Get(metainfoPath)
 						if err != nil {
