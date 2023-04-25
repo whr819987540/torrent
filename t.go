@@ -239,6 +239,7 @@ func (t *Torrent) AddPeers(pp []PeerInfo) (n int) {
 
 // Marks the entire torrent for download. Requires the info first, see
 // GotInfo. Sets piece priorities for historical reasons.
+// Announce which pieces should be downloaded
 func (t *Torrent) DownloadAll() {
 	t.DownloadPieces(0, t.numPieces())
 }
