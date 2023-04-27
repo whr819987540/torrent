@@ -12,7 +12,7 @@ var (
 	// This should be updated when client behaviour changes in a way that other peers could care
 	// about.
 	DefaultBep20Prefix   = "-GT0003-"
-	DefaultHttpUserAgent string
+	DefaultHttpUserAgent string // format: anacrolix-torrent/version
 	DefaultUpnpId        string
 )
 
