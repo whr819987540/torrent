@@ -17,6 +17,9 @@ func (mt *MessageType) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
+// peer messages
+// All non-keepalive messages start with a single byte which gives their type.
+// The possible values are:
 const (
 	// BEP 3
 	Choke         MessageType = 0
