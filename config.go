@@ -35,7 +35,7 @@ type ClientTrackerConfig struct {
 
 type ClientDhtConfig struct {
 	// Don't create a DHT.
-	NoDHT            bool `long:"disable-dht"`
+	NoDHT            bool `long:"disable-dht"` // default false, use dht to find more peers
 	DhtStartingNodes func(network string) dht.StartingNodesGetter
 	// Called for each anacrolix/dht Server created for the Client.
 	ConfigureAnacrolixDhtServer       func(*dht.ServerConfig)
