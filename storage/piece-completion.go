@@ -17,6 +17,8 @@ type PieceCompletion interface {
 	Close() error
 }
 
+// use sqlite by default
+// if sqlite connection fails, use a map
 func pieceCompletionForDir(dir string) (ret PieceCompletion) {
 	ret, err := NewDefaultPieceCompletionForDir(dir)
 	if err != nil {
