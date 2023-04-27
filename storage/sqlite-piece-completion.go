@@ -13,6 +13,7 @@ import (
 
 	"crawshaw.io/sqlite"
 	"crawshaw.io/sqlite/sqlitex"
+	"github.com/anacrolix/log"
 
 	"github.com/anacrolix/torrent/metainfo"
 )
@@ -36,6 +37,8 @@ func NewSqlitePieceCompletion(dir string) (ret *sqlitePieceCompletion, err error
 	if err != nil {
 		return
 	}
+	log.Print("create sqlite connection")
+	
 	err = sqlitex.ExecScript(db, `create table if not exists piece_completion(infohash, "index", complete, unique(infohash, "index"))`)
 	if err != nil {
 		db.Close()
