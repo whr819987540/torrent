@@ -35,7 +35,9 @@ type Info struct {
 const NoName = "-"
 
 // This is a helper that sets Files and Pieces from a root path and its children.
+// fullfill the info struct
 func (info *Info) BuildFromFilePath(root string) (err error) {
+	// name
 	info.Name = func() string {
 		b := filepath.Base(root)
 		switch b {
@@ -45,6 +47,8 @@ func (info *Info) BuildFromFilePath(root string) (err error) {
 			return b
 		}
 	}()
+
+	// files
 	info.Files = nil
 	err = filepath.Walk(root, func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
@@ -74,9 +78,13 @@ func (info *Info) BuildFromFilePath(root string) (err error) {
 	slices.Sort(info.Files, func(l, r FileInfo) bool {
 		return strings.Join(l.Path, "/") < strings.Join(r.Path, "/")
 	})
+
+	// piece length
 	if info.PieceLength == 0 {
 		info.PieceLength = ChoosePieceLength(info.TotalLength())
 	}
+
+	// pieces
 	err = info.GeneratePieces(func(fi FileInfo) (io.ReadCloser, error) {
 		return os.Open(filepath.Join(root, strings.Join(fi.Path, string(filepath.Separator))))
 	})
