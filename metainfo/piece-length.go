@@ -41,6 +41,9 @@ const (
 const targetPieceCountMax = targetPieceCountMin << 1
 
 // Choose a good piecelength.
+// piecelength >= 16KB
+// piecelength = 16KB*X
+// totalLength / piecelength = piecenumber < 2048
 func ChoosePieceLength(totalLength int64) (pieceLength int64) {
 	// Must be a power of 2.
 	// Must be a multiple of 16KB
