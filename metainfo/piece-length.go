@@ -30,9 +30,14 @@
 
 package metainfo
 
+import (
+	"math"
+)
+
 // For more context on why these numbers, see http://wiki.vuze.com/w/Torrent_Piece_Size
 const (
-	minimumPieceLength   = 16 * 1024
+	minimumPieceLength   = 64 * 1024
+	maximumPieceLength   = 2 * 1024 * 1024
 	targetPieceCountLog2 = 10
 	targetPieceCountMin  = 1 << targetPieceCountLog2
 )
@@ -41,16 +46,19 @@ const (
 const targetPieceCountMax = targetPieceCountMin << 1
 
 // Choose a good piecelength.
-// piecelength >= 16KB
-// piecelength = 16KB*X
-// totalLength / piecelength = piecenumber < 2048
+// piecelength >= 64KB and piecelength <= 2MB
+// piecelength = 64KB*X
+// totalLength / piecelength = piecenumber <= 2048
 func ChoosePieceLength(totalLength int64) (pieceLength int64) {
 	// Must be a power of 2.
-	// Must be a multiple of 16KB
+	// Must be a multiple of 64KB
 	// Prefer to provide around 1024..2048 pieces.
 	pieceLength = minimumPieceLength
-	pieces := totalLength / pieceLength
-	for pieces >= targetPieceCountMax {
+	pieces := int64(math.Ceil(float64(totalLength) / float64(pieceLength)))
+	for pieces > targetPieceCountMax {
+		if (pieceLength << 1) > maximumPieceLength {
+			break
+		}
 		pieceLength <<= 1
 		pieces >>= 1
 	}
