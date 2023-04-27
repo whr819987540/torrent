@@ -229,10 +229,16 @@ func NewClient(cfg *ClientConfig) (cl *Client, err error) {
 		}
 	}()
 
+	// default storage 默认为空
+	// 因此默认用sqlite(可以持久化)或map(内存, 无法持久化, 因此无法实现断点续传)来管理piece的completion情况
+	// 当然你也可以使用redis来进行管理(maybe faster)
 	storageImpl := cfg.DefaultStorage
 	if storageImpl == nil {
+		log.Print("sqlite as the storage")
 		// We'd use mmap by default but HFS+ doesn't support sparse files.
 		storageImplCloser := storage.NewFile(cfg.DataDir)
+		// storage.NewFileOpts
+		// cl的第一个close回调函数
 		cl.onClose = append(cl.onClose, func() {
 			if err := storageImplCloser.Close(); err != nil {
 				cl.logger.Printf("error closing default storage: %s", err)
@@ -242,6 +248,7 @@ func NewClient(cfg *ClientConfig) (cl *Client, err error) {
 	}
 	cl.defaultStorage = storage.NewClient(storageImpl)
 
+	// PeerID如果没有指定, 格式为'-GT0003-'+12个随机字节
 	if cfg.PeerID != "" {
 		missinggo.CopyExact(&cl.peerID, cfg.PeerID)
 	} else {
@@ -251,7 +258,11 @@ func NewClient(cfg *ClientConfig) (cl *Client, err error) {
 			panic("error generating peer id")
 		}
 	}
-
+	// cl.listenNetworks()
+	// 首先将TCP4/TCP6/UDP4/UDP6按照ipv4/ipv6与TCP/UDP四个维度进行划分, 得到四个结构体network
+	// 然后再基于cl.config看是否禁用了TCP/UDP/ipv4/ipv6对这四个结构体进行筛选
+	// ListenHost默认是"", ListenPort默认是42069
+	// listenAll就是完成对上面选定的network的监听
 	sockets, err := listenAll(cl.listenNetworks(), cl.config.ListenHost, cl.config.ListenPort, cl.firewallCallback, cl.logger)
 	if err != nil {
 		return
@@ -262,6 +273,7 @@ func NewClient(cfg *ClientConfig) (cl *Client, err error) {
 
 	for _, _s := range sockets {
 		s := _s // Go is fucking retarded.
+		// cl的第二个close回调函数
 		cl.onClose = append(cl.onClose, func() { go s.Close() })
 		if peerNetworkEnabled(parseNetworkString(s.Addr().Network()), cl.config) {
 			cl.dialers = append(cl.dialers, s)
