@@ -64,6 +64,7 @@ func (mi MetaInfo) Write(w io.Writer) error {
 func (mi *MetaInfo) SetDefaults() {
 	mi.CreatedBy = "github.com/anacrolix/torrent"
 	mi.CreationDate = time.Now().Unix()
+	mi.Encoding = "UTF-8"
 }
 
 // Creates a Magnet from a MetaInfo. Optional infohash and parsed info can be provided.
