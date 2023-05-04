@@ -94,6 +94,39 @@ func (info *Info) BuildFromFilePath(root string) (err error) {
 	return
 }
 
+// 根据导入的模型确定name
+// 需要设置info.Length为byte数组的长度, 也是整个文件(内存)的长度
+func (info *Info) BuildFromMemory(byteData []byte, name string) (err error) {
+	// length
+	length := info.Length
+	if length == 0 {
+		info.Length = int64(len(byteData))
+		length = info.Length
+	}
+
+	// name
+	info.Name = name
+
+	// files
+	// regard the memory block as single file
+	info.Files = append(info.Files, FileInfo{
+		Path:   []string{name},
+		Length: length,
+	})
+
+	// piece length
+	if info.PieceLength == 0 {
+		info.PieceLength = ChoosePieceLength(info.TotalLength())
+	}
+
+	// pieces
+	err = info.GeneratePiecesFromMemory(byteData)
+	if err != nil {
+		err = fmt.Errorf("error generating pieces: %s", err)
+	}
+	return
+}
+
 // Concatenates all the files in the torrent into w. open is a function that
 // gets at the contents of the given file.
 func (info *Info) writeFiles(w io.Writer, open func(fi FileInfo) (io.ReadCloser, error)) error {
@@ -124,6 +157,14 @@ func (info *Info) GeneratePieces(open func(fi FileInfo) (io.ReadCloser, error)) 
 	}()
 	defer pr.Close()
 	info.Pieces, err = GeneratePieces(pr, info.PieceLength, nil)
+	return
+}
+
+func (info *Info) GeneratePiecesFromMemory(byteData []byte) (err error) {
+	if info.PieceLength == 0 {
+		return errors.New("piece length must be non-zero")
+	}
+	info.Pieces, err = GeneratePiecesFromMemory(byteData, info.PieceLength,int(info.TotalLength()),nil)
 	return
 }
 
