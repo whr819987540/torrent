@@ -17,6 +17,10 @@ func NewClient(cl ClientImpl) *Client {
 	return &Client{cl}
 }
 
+func (cl Client)Ci()ClientImpl{
+	return cl.ci
+}
+
 func (cl Client) OpenTorrent(info *metainfo.Info, infoHash metainfo.Hash) (*Torrent, error) {
 	t, err := cl.ci.OpenTorrent(info, infoHash)
 	if err != nil {
