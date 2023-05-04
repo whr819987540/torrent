@@ -2568,3 +2568,11 @@ func (t *Torrent) checkValidReceiveChunk(r Request) error {
 	// catch most of the overflow manipulation stuff by checking index and begin above.
 	return nil
 }
+
+func (t *Torrent) BytesWrittenToMemory() int64 {
+	ci := t.storageOpener.Ci()
+	if value, ok := ci.(storage.MemoryClientImpl); ok {
+		return value.BytesWrittenToMemory()
+	}
+	return 0
+}
