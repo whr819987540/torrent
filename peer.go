@@ -715,6 +715,7 @@ func (c *Peer) receiveChunk(msg *pp.Message) error {
 		// because we want to handle errors synchronously and I haven't thought of a nice way to
 		// defer any concurrency to the storage and have that notify the client of errors. TODO: Do
 		// that instead.
+		// 实际执行写入chunk的位置
 		return t.writeChunk(int(msg.Index), int64(msg.Begin), msg.Piece)
 	}()
 
