@@ -164,7 +164,7 @@ func (info *Info) GeneratePiecesFromMemory(byteData []byte) (err error) {
 	if info.PieceLength == 0 {
 		return errors.New("piece length must be non-zero")
 	}
-	info.Pieces, err = GeneratePiecesFromMemory(byteData, info.PieceLength,int(info.TotalLength()),nil)
+	info.Pieces, err = GeneratePiecesFromMemory(byteData, info.PieceLength, int(info.TotalLength()), nil)
 	return
 }
 
