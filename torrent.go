@@ -749,7 +749,7 @@ func (t *Torrent) writeStatus(w io.Writer) {
 			ml.StrictNext(lu.String() == ru.String(), lu.String() < ru.String())
 			return ml.Less()
 		}).([]torrentTrackerAnnouncer) {
-			fmt.Fprintf(tw, "    %q\t%v\n", ta.URL(), ta.statusLine())
+			fmt.Fprintf(tw, "    %q\t%v\n", ta.URL(), ta.statusLine()) // tracker的状态
 		}
 		tw.Flush()
 	}()
@@ -1447,6 +1447,7 @@ func appendMissingTrackerTiers(existing [][]string, minNumTiers int) (ret [][]st
 func (t *Torrent) addTrackers(announceList [][]string) {
 	fullAnnounceList := &t.metainfo.AnnounceList
 	t.metainfo.AnnounceList = appendMissingTrackerTiers(*fullAnnounceList, len(announceList))
+	t.metainfo.Announce = announceList[0][0]
 	for tierIndex, trackerURLs := range announceList {
 		(*fullAnnounceList)[tierIndex] = appendMissingStrings((*fullAnnounceList)[tierIndex], trackerURLs)
 	}
