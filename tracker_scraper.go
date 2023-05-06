@@ -37,22 +37,27 @@ func (ts *trackerScraper) statusLine() string {
 	var w bytes.Buffer
 	fmt.Fprintf(&w, "next ann: %v, last ann: %v",
 		func() string {
+			// 计算下一次 announce 的时间
 			na := time.Until(ts.lastAnnounce.Completed.Add(ts.lastAnnounce.Interval))
 			if na > 0 {
 				na /= time.Second
 				na *= time.Second
 				return na.String()
 			} else {
+				// 马上可以进行下一次 announce
 				return "anytime"
 			}
 		}(),
 		func() string {
+			// 上一次 announce 出错
 			if ts.lastAnnounce.Err != nil {
 				return ts.lastAnnounce.Err.Error()
 			}
+			// 上一次 announce 从未成功完成过, 即没有成功完成的 announce
 			if ts.lastAnnounce.Completed.IsZero() {
 				return "never"
 			}
+			// 上一次 announce 完成时获取的peer数
 			return fmt.Sprintf("%d peers", ts.lastAnnounce.NumPeers)
 		}(),
 	)
@@ -67,7 +72,10 @@ type trackerAnnounceResult struct {
 }
 
 func (me *trackerScraper) getIp() (ip net.IP, err error) {
+	// log.Printf("in get ip function")
+	trackerURL := me.u.String()
 	var ips []net.IP
+	// 内置函数查找tracker IP
 	if me.lookupTrackerIp != nil {
 		ips, err = me.lookupTrackerIp(&me.u)
 	} else {
@@ -77,8 +85,9 @@ func (me *trackerScraper) getIp() (ip net.IP, err error) {
 	if err != nil {
 		return
 	}
+	// 内置函数或dns 查询结果为空
 	if len(ips) == 0 {
-		err = errors.New("no ips")
+		err = fmt.Errorf("no ips(couldn't know the tracker's(%s) ip)", trackerURL)
 		return
 	}
 	me.t.cl.rLock()
@@ -87,8 +96,10 @@ func (me *trackerScraper) getIp() (ip net.IP, err error) {
 		err = errors.New("client is closed")
 		return
 	}
+	log.Printf("tracker(%s),ips(%v)", trackerURL, ips)
 	for _, ip = range ips {
 		if me.t.cl.ipIsBlocked(ip) {
+			log.Printf("%s(%s) blocked", me.u.String(), ip.String())
 			continue
 		}
 		switch me.u.Scheme {
@@ -100,6 +111,8 @@ func (me *trackerScraper) getIp() (ip net.IP, err error) {
 			if ip.To4() != nil {
 				continue
 			}
+		default:
+			log.Printf("%s", me.u.Scheme)
 		}
 		return
 	}
@@ -140,6 +153,7 @@ func (me *trackerScraper) announce(ctx context.Context, event tracker.AnnounceEv
 		}
 	}()
 
+	// tracker ip
 	ip, err := me.getIp()
 	if err != nil {
 		ret.Err = fmt.Errorf("error getting ip: %s", err)
@@ -152,6 +166,7 @@ func (me *trackerScraper) announce(ctx context.Context, event tracker.AnnounceEv
 	// we're passing our own Context now, we will include that timeout ourselves to maintain similar
 	// behavior to previously, albeit with this context now being cancelled when the Torrent is
 	// closed.
+	// 15s
 	ctx, cancel := context.WithTimeout(ctx, tracker.DefaultTrackerAnnounceTimeout)
 	defer cancel()
 	me.t.logger.WithDefaultLevel(log.Debug).Printf("announcing to %q: %#v", me.u.String(), req)
@@ -173,9 +188,12 @@ func (me *trackerScraper) announce(ctx context.Context, event tracker.AnnounceEv
 	}.Do()
 	me.t.logger.WithDefaultLevel(log.Debug).Printf("announce to %q returned %#v: %v", me.u.String(), res, err)
 	if err != nil {
+		log.Printf("annouce error:%v", err)
 		ret.Err = fmt.Errorf("announcing: %w", err)
 		return
 	}
+	log.Printf("announce ok %s(%s)",me.trackerUrl(ip),ip)
+	
 	me.t.AddPeers(peerInfos(nil).AppendFromTracker(res.Peers))
 	ret.NumPeers = len(res.Peers)
 	ret.Interval = time.Duration(res.Interval) * time.Second
