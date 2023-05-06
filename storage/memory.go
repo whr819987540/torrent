@@ -14,6 +14,11 @@ import (
 	"github.com/anacrolix/torrent/segments"
 )
 
+type MemoryBuf struct{
+	Data       []byte
+	Length     int64
+}
+
 // 专门用来对内存进行读写
 // 基于指定的[]byte生成一个buffer, 可以从某个偏移量开始写入指定的数据
 // 返回实际写入的字节数, error
@@ -128,30 +133,44 @@ func (mci MemoryClientImpl) OpenTorrent(info *metainfo.Info, infoHash metainfo.H
 }
 
 // NewMemory creates a memory block to store all Torrent data
-func NewMemory(totalLength int64) (ClientImplCloser, error) {
-	return NewMemoryWithCompletion(totalLength)
+func NewMemory(totalLength int64,mb *MemoryBuf) (ClientImplCloser, error) {
+	return NewMemoryWithCompletion(totalLength,mb)
 }
 
 // NewMemoryWithCompletion 中Completion是指piece completion, 用来记录piece的完成情况(已经实现的是sqlite)
 // 但这个并不是必须的
-func NewMemoryWithCompletion(totalLength int64) (ClientImplCloser, error) {
-	// allocate memory
-	if flag, avail := isAllocatedOutOfHeapMemory(totalLength); !flag {
-		return nil, fmt.Errorf("try to allocate too much memory, want %d, available %d", totalLength, avail)
-	}
-	data := make([]byte, totalLength)
-	var p *byte = &data[0]
-	log.Printf("%d %d %v", len(data), cap(data), p)
+func NewMemoryWithCompletion(totalLength int64,mb *MemoryBuf) (ClientImplCloser, error) {
+	var opts NewMemoryClientOpts
+	if mb!=nil{
+		// storage.ClientImplCloser 实际返回 memoryClientImpl
+		opts = NewMemoryClientOpts{
+			Torrent: &memoryBuf{
+				data:   mb.Data,
+				length: mb.Length,
+				totalWrite: 0,
+			},
+			PieceCompletion: pieceCompletionForDir("./"), // 默认选择sqlite, sqlite的db文件放在./下面
+		}
+	}else{
+		// allocate memory
+		if flag, avail := isAllocatedOutOfHeapMemory(totalLength); !flag {
+			return nil, fmt.Errorf("try to allocate too much memory, want %d, available %d", totalLength, avail)
+		}
+		data := make([]byte, totalLength)
+		var p *byte = &data[0]
+		log.Printf("%d %d %v", len(data), cap(data), p)
 
-	// storage.ClientImplCloser 实际返回 memoryClientImpl
-	opts := NewMemoryClientOpts{
-		Torrent: &memoryBuf{
-			data:   data,
-			length: totalLength,
-			totalWrite: 0,
-		},
-		PieceCompletion: pieceCompletionForDir("./"), // 默认选择sqlite, sqlite的db文件放在./下面
+		// storage.ClientImplCloser 实际返回 memoryClientImpl
+		opts = NewMemoryClientOpts{
+			Torrent: &memoryBuf{
+				data:   data,
+				length: totalLength,
+				totalWrite: 0,
+			},
+			PieceCompletion: pieceCompletionForDir("./"), // 默认选择sqlite, sqlite的db文件放在./下面
+		}
 	}
+	
 	return MemoryClientImpl{opts}, nil
 }
 
