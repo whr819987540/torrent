@@ -141,22 +141,22 @@ func (mci MemoryClientImpl) OpenTorrent(info *metainfo.Info, infoHash metainfo.H
 }
 
 // NewMemory acts differently for seeders and leechers
-// for seeders, mb should have already contained the data. mb is not nill
-// for leechers, mb should be nil. but we can access the downloaded date through the returned mb
-func NewMemory(totalLength int64, mb *MemoryBuf) (ClientImplCloser, *MemoryBuf, error) {
-	return NewMemoryWithCompletion(totalLength, mb)
+// for seeders, mbpp not nill, mbp not nill, mb not nil
+// for leechers, mbpp not nill, mbp nill, mb nill. we can access the downloaded date through the returned mbpp
+func NewMemory(totalLength int64, mbpp **MemoryBuf) (ClientImplCloser, error) {
+	return NewMemoryWithCompletion(totalLength, mbpp)
 }
 
 // NewMemoryWithCompletion 中Completion是指piece completion, 用来记录piece的完成情况(已经实现的是sqlite)
 // 但这个并不是必须的
-func NewMemoryWithCompletion(totalLength int64, mb *MemoryBuf) (ClientImplCloser, *MemoryBuf, error) {
+func NewMemoryWithCompletion(totalLength int64, mbpp **MemoryBuf) (ClientImplCloser, error) {
 	var opts NewMemoryClientOpts
-	if mb != nil { // seeders
+	if *mbpp != nil { // seeders
 		// storage.ClientImplCloser 实际返回 memoryClientImpl
 		opts = NewMemoryClientOpts{
 			Torrent: &memoryBuf{
-				data:       mb.Data,
-				length:     mb.Length,
+				data:       (**mbpp).Data,
+				length:     (**mbpp).Length,
 				totalWrite: 0,
 			},
 			PieceCompletion: pieceCompletionForDir("./"), // 默认选择sqlite, sqlite的db文件放在./下面
@@ -164,7 +164,7 @@ func NewMemoryWithCompletion(totalLength int64, mb *MemoryBuf) (ClientImplCloser
 	} else { // leechers
 		// allocate memory
 		if flag, avail := isAllocatedOutOfHeapMemory(totalLength); !flag {
-			return nil, nil, fmt.Errorf("try to allocate too much memory, want %d, available %d", totalLength, avail)
+			return nil, fmt.Errorf("try to allocate too much memory, want %d, available %d", totalLength, avail)
 		}
 		data := make([]byte, totalLength)
 		var p *byte = &data[0]
@@ -179,13 +179,14 @@ func NewMemoryWithCompletion(totalLength int64, mb *MemoryBuf) (ClientImplCloser
 			},
 			PieceCompletion: pieceCompletionForDir("./"), // 默认选择sqlite, sqlite的db文件放在./下面
 		}
-		mb = &MemoryBuf{
+		mbp := &MemoryBuf{
 			Data:   data,
 			Length: totalLength,
 		}
+		mbpp = &mbp
 	}
 
-	return MemoryClientImpl{opts}, mb, nil
+	return MemoryClientImpl{opts}, nil
 }
 
 // NewMemoryOpts creates a new MemoryImplCloser that stores files using memory
