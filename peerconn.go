@@ -950,7 +950,9 @@ another:
 				return false
 			}
 			// 完成一次写入, 打印日志
-			log.Printf("write %d to %s",len(state.data),c.RemoteAddr)
+			if Debug {
+				log.Printf("write %d to %s", len(state.data), c.RemoteAddr)
+			}
 			goto another
 		}
 		return true

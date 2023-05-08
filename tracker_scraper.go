@@ -72,7 +72,6 @@ type trackerAnnounceResult struct {
 }
 
 func (me *trackerScraper) getIp() (ip net.IP, err error) {
-	// log.Printf("in get ip function")
 	trackerURL := me.u.String()
 	var ips []net.IP
 	// 内置函数查找tracker IP
@@ -96,10 +95,15 @@ func (me *trackerScraper) getIp() (ip net.IP, err error) {
 		err = errors.New("client is closed")
 		return
 	}
-	log.Printf("tracker(%s),ips(%v)", trackerURL, ips)
+	if Debug {
+		log.Printf("dns resolve: tracker(%s),ips(%v)", trackerURL, ips)
+	}
+
 	for _, ip = range ips {
 		if me.t.cl.ipIsBlocked(ip) {
-			log.Printf("%s(%s) blocked", me.u.String(), ip.String())
+			if Debug {
+				log.Printf("%s(%s) blocked", me.u.String(), ip.String())
+			}
 			continue
 		}
 		switch me.u.Scheme {
@@ -112,7 +116,9 @@ func (me *trackerScraper) getIp() (ip net.IP, err error) {
 				continue
 			}
 		default:
-			log.Printf("%s", me.u.Scheme)
+			if Debug {
+				log.Printf("%s", me.u.Scheme)
+			}
 		}
 		return
 	}
@@ -188,12 +194,14 @@ func (me *trackerScraper) announce(ctx context.Context, event tracker.AnnounceEv
 	}.Do()
 	me.t.logger.WithDefaultLevel(log.Debug).Printf("announce to %q returned %#v: %v", me.u.String(), res, err)
 	if err != nil {
-		log.Printf("annouce error:%v", err)
+		if Debug {
+			log.Printf("annouce error:%v", err)
+		}
 		ret.Err = fmt.Errorf("announcing: %w", err)
 		return
 	}
-	log.Printf("announce ok %s(%s)",me.trackerUrl(ip),ip)
-	
+	log.Printf("announce ok %s(%s)", me.trackerUrl(ip), ip)
+
 	me.t.AddPeers(peerInfos(nil).AppendFromTracker(res.Peers))
 	ret.NumPeers = len(res.Peers)
 	ret.Interval = time.Duration(res.Interval) * time.Second
