@@ -14,9 +14,9 @@ import (
 	"github.com/anacrolix/torrent/segments"
 )
 
-type MemoryBuf struct{
-	Data       []byte
-	Length     int64
+type MemoryBuf struct {
+	Data   []byte
+	Length int64
 }
 
 // 专门用来对内存进行读写
@@ -87,6 +87,14 @@ type MemoryClientImpl struct {
 	opts NewMemoryClientOpts
 }
 
+// GetData return a torrent's data in memory
+func (mci MemoryClientImpl) GetData() *MemoryBuf {
+	return &MemoryBuf{
+		Data:   mci.opts.Torrent.data,
+		Length: mci.opts.Torrent.length,
+	}
+}
+
 // Close 关闭操作piece completion的sqlite连接
 func (mci MemoryClientImpl) Close() error {
 	return mci.opts.PieceCompletion.Close()
@@ -132,29 +140,31 @@ func (mci MemoryClientImpl) OpenTorrent(info *metainfo.Info, infoHash metainfo.H
 	}, nil
 }
 
-// NewMemory creates a memory block to store all Torrent data
-func NewMemory(totalLength int64,mb *MemoryBuf) (ClientImplCloser, error) {
-	return NewMemoryWithCompletion(totalLength,mb)
+// NewMemory acts differently for seeders and leechers
+// for seeders, mb should have already contained the data. mb is not nill
+// for leechers, mb should be nil. but we can access the downloaded date through the returned mb
+func NewMemory(totalLength int64, mb *MemoryBuf) (ClientImplCloser, *MemoryBuf, error) {
+	return NewMemoryWithCompletion(totalLength, mb)
 }
 
 // NewMemoryWithCompletion 中Completion是指piece completion, 用来记录piece的完成情况(已经实现的是sqlite)
 // 但这个并不是必须的
-func NewMemoryWithCompletion(totalLength int64,mb *MemoryBuf) (ClientImplCloser, error) {
+func NewMemoryWithCompletion(totalLength int64, mb *MemoryBuf) (ClientImplCloser, *MemoryBuf, error) {
 	var opts NewMemoryClientOpts
-	if mb!=nil{
+	if mb != nil { // seeders
 		// storage.ClientImplCloser 实际返回 memoryClientImpl
 		opts = NewMemoryClientOpts{
 			Torrent: &memoryBuf{
-				data:   mb.Data,
-				length: mb.Length,
+				data:       mb.Data,
+				length:     mb.Length,
 				totalWrite: 0,
 			},
 			PieceCompletion: pieceCompletionForDir("./"), // 默认选择sqlite, sqlite的db文件放在./下面
 		}
-	}else{
+	} else { // leechers
 		// allocate memory
 		if flag, avail := isAllocatedOutOfHeapMemory(totalLength); !flag {
-			return nil, fmt.Errorf("try to allocate too much memory, want %d, available %d", totalLength, avail)
+			return nil, nil, fmt.Errorf("try to allocate too much memory, want %d, available %d", totalLength, avail)
 		}
 		data := make([]byte, totalLength)
 		var p *byte = &data[0]
@@ -163,15 +173,19 @@ func NewMemoryWithCompletion(totalLength int64,mb *MemoryBuf) (ClientImplCloser,
 		// storage.ClientImplCloser 实际返回 memoryClientImpl
 		opts = NewMemoryClientOpts{
 			Torrent: &memoryBuf{
-				data:   data,
-				length: totalLength,
+				data:       data,
+				length:     totalLength,
 				totalWrite: 0,
 			},
 			PieceCompletion: pieceCompletionForDir("./"), // 默认选择sqlite, sqlite的db文件放在./下面
 		}
+		mb = &MemoryBuf{
+			Data:   data,
+			Length: totalLength,
+		}
 	}
-	
-	return MemoryClientImpl{opts}, nil
+
+	return MemoryClientImpl{opts}, mb, nil
 }
 
 // NewMemoryOpts creates a new MemoryImplCloser that stores files using memory
