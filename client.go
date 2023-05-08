@@ -23,8 +23,8 @@ import (
 	"github.com/anacrolix/chansync/events"
 	"github.com/anacrolix/dht/v2"
 	"github.com/anacrolix/dht/v2/krpc"
-	g "github.com/anacrolix/generics"
 	. "github.com/anacrolix/generics"
+	g "github.com/anacrolix/generics"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo/perf"
 	"github.com/anacrolix/missinggo/v2"
@@ -48,6 +48,10 @@ import (
 	"github.com/anacrolix/torrent/tracker"
 	"github.com/anacrolix/torrent/types/infohash"
 	"github.com/anacrolix/torrent/webtorrent"
+)
+
+var (
+	Debug = false
 )
 
 // Clients contain zero or more Torrents. A Client manages a blocklist, the
@@ -178,6 +182,7 @@ func (cl *Client) WriteStatus(_w io.Writer) {
 }
 
 func (cl *Client) initLogger() {
+	Debug = cl.config.Debug // set the global debug flag for and only for torrent module
 	logger := cl.config.Logger
 	if logger.IsZero() {
 		logger = log.Default
