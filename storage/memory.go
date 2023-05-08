@@ -142,7 +142,9 @@ func (mci MemoryClientImpl) OpenTorrent(info *metainfo.Info, infoHash metainfo.H
 
 // NewMemory acts differently for seeders and leechers
 // for seeders, mbpp not nill, mbp not nill, mb not nil
-// for leechers, mbpp not nill, mbp nill, mb nill. we can access the downloaded date through the returned mbpp
+// for leechers, mbpp not nill, mbp nill, mb nill.
+// this function make mbp not nill, mb not nill.
+// we can access the downloaded date through the returned mbpp
 func NewMemory(totalLength int64, mbpp **MemoryBuf) (ClientImplCloser, error) {
 	return NewMemoryWithCompletion(totalLength, mbpp)
 }
@@ -179,11 +181,10 @@ func NewMemoryWithCompletion(totalLength int64, mbpp **MemoryBuf) (ClientImplClo
 			},
 			PieceCompletion: pieceCompletionForDir("./"), // 默认选择sqlite, sqlite的db文件放在./下面
 		}
-		mbp := &MemoryBuf{
+		*mbpp = &MemoryBuf{
 			Data:   data,
 			Length: totalLength,
 		}
-		mbpp = &mbp
 	}
 
 	return MemoryClientImpl{opts}, nil
