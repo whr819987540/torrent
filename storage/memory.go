@@ -126,7 +126,7 @@ func (mci MemoryClientImpl) OpenTorrent(info *metainfo.Info, infoHash metainfo.H
 		}
 		files = append(files, f)
 	}
-	fmt.Print(upvertedFiles)
+	log.Printf("%v",upvertedFiles)
 	t := memoryTorrentImpl{
 		Torrent:        mci.opts.Torrent,
 		files:          files, // from torrent
