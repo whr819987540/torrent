@@ -1,6 +1,7 @@
 package metainfo
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -164,7 +165,8 @@ func (info *Info) GeneratePiecesFromMemory(byteData []byte) (err error) {
 	if info.PieceLength == 0 {
 		return errors.New("piece length must be non-zero")
 	}
-	info.Pieces, err = GeneratePiecesFromMemory(byteData, info.PieceLength, int(info.TotalLength()), nil)
+	reader := io.NewSectionReader(bytes.NewReader(byteData), 0, info.TotalLength())
+	info.Pieces, err = GeneratePiecesFromMemory(reader, info.PieceLength, nil)
 	return
 }
 
