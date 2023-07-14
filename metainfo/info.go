@@ -214,3 +214,36 @@ func (info Info) BestName() string {
 	}
 	return info.Name
 }
+
+// "info":{
+//     "pieces":bytes, # 20位哈希值连接成的bytes，join the SHA1 hash of the pieces
+
+//     # 单文件
+//     "name":str, # 该文件名称
+//     "length":int, # 文件大小，<= piece length*pieces/20
+//     "md5sum":bytes, # 对整个文件进行校验
+
+//     # 多文件
+//     "name":str, # 对所有文件的总称
+//     "files":[
+//         {
+//             "path":list[str], # 文件的路径
+//             "length":int, # 该文件大小
+//             "md5sum":bytes, # 对该文件的校验
+//         }
+//     ]
+
+// }
+func (info Info) Describe() string {
+	res := ""
+	if !info.IsDir() {
+		res += "single file\n"
+	}
+	res += fmt.Sprintf("name: %s, piece length: %d, piece number: %d, length: %d\n", info.Name, info.PieceLength, int(len(info.Pieces)/24), info.TotalLength())
+	if info.IsDir() {
+		for i, file := range info.Files {
+			res += fmt.Sprintf("[%d] %s %d\n", i, file.Path, file.Length)
+		}
+	}
+	return res
+}
