@@ -3,6 +3,7 @@ package metainfo
 import (
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -152,4 +153,27 @@ func TestMetainfoWithStringURLList(t *testing.T) {
 func TestStringCreationDate(t *testing.T) {
 	var mi MetaInfo
 	assert.NoError(t, bencode.Unmarshal([]byte("d13:creation date23:29.03.2018 22:18:14 UTC4:infodee"), &mi))
+}
+
+func TestMetaInfoDescribe(t *testing.T) {
+	var Trackers = [][]string{
+		{"udp://tracker.opentrackr.org:1337/announce"},
+		{"udp://tracker.openbittorrent.com:6969/announce"},
+		{"udp://tracker.moeking.me:6969/announce"},
+		{"udp://p4p.arenabg.com:1337/announce"},
+	}
+
+	mi := MetaInfo{}
+	info := Info{}
+	err := info.BuildFromFilePath("/dev/shm")
+	if err != nil {
+		log.Print(err)
+	}
+	mi.SetDefaults()
+	mi.InfoBytes = bencode.MustMarshal(info)
+	// tracker也应该是可以配置的,不应该固定
+	mi.Announce = Trackers[0][0]
+	mi.AnnounceList = Trackers
+
+	log.Printf(mi.Describe())
 }
