@@ -1,6 +1,7 @@
 package metainfo
 
 import (
+	"fmt"
 	"io"
 	"net/url"
 	"os"
@@ -93,4 +94,16 @@ func (mi *MetaInfo) UpvertedAnnounceList() AnnounceList {
 		return [][]string{{mi.Announce}}
 	}
 	return nil
+}
+
+func (mi *MetaInfo) Describe() string {
+	res := ""
+	info, _ := mi.UnmarshalInfo()
+	res += fmt.Sprintf("announce: %s, encoding: %s\n", mi.Announce, mi.Encoding)
+	res += "announce-list:\n"
+	for i, announce := range mi.AnnounceList {
+		res += fmt.Sprintf("[%d] %s\n", i, announce[0])
+	}
+	res += fmt.Sprintf("info: %s", info.Describe())
+	return res
 }
