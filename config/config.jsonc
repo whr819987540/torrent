@@ -1,0 +1,26 @@
+{
+    "server": {
+        "ServerIP": "47.109.111.117" // PS的ip
+    },
+    "client": {
+        "TotalPeers": 3, // 总节点数
+        "IPList": [] // client的ip
+    },
+    "port": {
+        "DataPort": 42069, // 传输数据(BT监听)的端口
+        "HttpPort": 42070 // http通信(RPC)端口
+    },
+    "model": {
+        // "ModelPath": "/root/compare/model",
+        "ModelPath": "/dev/shm", // tmpfs, 存储在共享内存的存储区域
+        "ModelName": "bert_base_model.pth"
+        // ModelName = "新冠药物.bmp"
+    },
+    "storage": {
+        // 1) memory, 程序自己管理内存, 如果遇到内存不够, 不方便处理
+        // 2) tmpfs, 存储在虚拟内存中, 大概率存储在物理内存中, 也可能位于交换区(硬盘)
+        //    优点是不需要自己管理内存, 可以像使用一般的文件系统一样来使用内存
+        // 3) disk, 将数据放在硬盘上, 并在硬盘上进行读写操作
+        "Method": "tmpfs"
+    }
+}

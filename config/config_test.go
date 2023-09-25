@@ -6,7 +6,7 @@ import (
 )
 
 func TestReadJsonc(t *testing.T) {
-	jsoncFileName := "../config.jsonc"
+	jsoncFileName := "./config.jsonc"
 	jsonData, err := ReadJsonc(jsoncFileName)
 	t.Logf("json data: %+v", jsonData)
 	if err != nil {
