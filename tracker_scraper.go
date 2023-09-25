@@ -200,7 +200,7 @@ func (me *trackerScraper) announce(ctx context.Context, event tracker.AnnounceEv
 		ret.Err = fmt.Errorf("announcing: %w", err)
 		return
 	}
-	// log.Printf("announce ok %s(%s)", me.trackerUrl(ip), ip)
+	log.Printf("announce ok %s(%s)", me.trackerUrl(ip), ip)
 
 	me.t.AddPeers(peerInfos(nil).AppendFromTracker(res.Peers))
 	ret.NumPeers = len(res.Peers)
