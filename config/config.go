@@ -30,10 +30,14 @@ type Config struct {
 	Storage struct {
 		Method string `json:"Method"`
 	} `json:"storage"`
+	Tracker struct {
+		URLList [][]string `json:"URLList"`
+	} `json:"tracker"`
 }
+
 // 去除jsonc文件中的注释
 func removeComments(jsonc string) string {
-	commentRegex := regexp.MustCompile(`(?m)(?s)//.*?$|/\*.*?\*/`)
+	commentRegex := regexp.MustCompile(`(?m)(?s)// .*?$|/\*.*?\*/`)
 	tmp := commentRegex.ReplaceAllString(jsonc, "")
 	re := regexp.MustCompile(`(?m)^\s*$[\r\n]*`)
 	return re.ReplaceAllString(tmp, "")
