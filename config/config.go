@@ -46,9 +46,17 @@ func removeComments(jsonc string) string {
 // 读取jsonc文件并去除注释
 func ReadJsonc(jsoncFileName string) (string, error) {
 	var err error
+	var confPath string
 
-	currentPath, _ := os.Getwd()
-	confPath := path.Join(currentPath, jsoncFileName)
+	// 检查是否是绝对路径
+	// 不是绝对路径, 则confPath是工作目录加上传入的参数
+	if path.IsAbs(jsoncFileName) {
+		confPath = jsoncFileName
+	} else {
+		currentPath, _ := os.Getwd()
+		confPath = path.Join(currentPath, jsoncFileName)
+	}
+
 	_, err = os.Stat(confPath)
 	if err != nil {
 		return "", errors.New(fmt.Sprintf("config file is not found %s", confPath))
