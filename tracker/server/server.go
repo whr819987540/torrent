@@ -230,11 +230,13 @@ func (me *AnnounceHandler) augmentPeersFromUpstream(infoHash [20]byte) augmentat
 			})
 			interval := resp.Interval
 			go func() {
-				if interval < 5*60 {
-					// This is as much to reduce load on upstream trackers in the event of errors,
-					// as it is to reduce load on our peer store.
-					interval = 5 * 60
-				}
+				// TODO: make peer find each other as soon as possible
+				// DONE: remove restrictions on announce interval
+				// if interval < 5*60 {
+				// 	// This is as much to reduce load on upstream trackers in the event of errors,
+				// 	// as it is to reduce load on our peer store.
+				// 	interval = 5 * 60
+				// }
 				err := me.UpstreamAnnounceGate.Completed(context.Background(), url, infoHash, interval)
 				if err != nil {
 					log.Printf("error recording completed announce for %x to %v: %v", infoHash, url, err)

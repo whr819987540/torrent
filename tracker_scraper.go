@@ -251,9 +251,11 @@ func (me *trackerScraper) Run() {
 	recalculate:
 		// Make sure we don't announce for at least a minute since the last one.
 		interval := ar.Interval
-		if interval < time.Minute {
-			interval = time.Minute
-		}
+		// TODO: make peer find each other as soon as possible
+		// DONE: remove restrictions on announce interval
+		// if interval < time.Minute {
+		// 	interval = time.Minute
+		// }
 
 		me.t.cl.lock()
 		wantPeers := me.t.wantPeersEvent.C()
