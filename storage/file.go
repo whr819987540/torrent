@@ -3,7 +3,6 @@ package storage
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -191,7 +190,7 @@ func (fst fileTorrentImplIO) WriteAt(p []byte, off int64) (n int, err error) {
 		name := fst.fts.files[i].path
 		os.MkdirAll(filepath.Dir(name), 0o777)
 		var f *os.File
-		log.Printf("name %s", name)
+		// log.Printf("name %s", name)
 		f, err = os.OpenFile(name, os.O_WRONLY|os.O_CREATE, 0o666)
 		if err != nil {
 			return false
