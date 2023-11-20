@@ -33,6 +33,9 @@ type Config struct {
 	Tracker struct {
 		URLList [][]string `json:"URLList"`
 	} `json:"tracker"`
+	TorrentLib struct {
+		Debug bool `json:"Debug"`
+	} `json:"torrentLib"`
 }
 
 // 去除jsonc文件中的注释
