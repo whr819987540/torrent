@@ -10,6 +10,10 @@ type ChunkSpec struct {
 	Begin, Length pp.Integer
 }
 
+// Request is made in chunks.
+// Index is the index of the piece that the chunk belongs to.
+// Begin is is the starting offset of the chunk within the picec it belongs to.
+// Length is the length of the chunk. From BitTorrent's document, it's usually set to 16KB.
 type Request struct {
 	Index pp.Integer
 	ChunkSpec
