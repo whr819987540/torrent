@@ -202,6 +202,7 @@ func (me *trackerScraper) announce(ctx context.Context, event tracker.AnnounceEv
 	}
 	log.Printf("announce to %q(%s) returned %#v, err is %v, interval is %v/s.", me.u.String(), ip, res, err, res.Interval)
 
+	// find peers for a certain torrent
 	me.t.AddPeers(peerInfos(nil).AppendFromTracker(res.Peers))
 	ret.NumPeers = len(res.Peers)
 	// set the announce interval
