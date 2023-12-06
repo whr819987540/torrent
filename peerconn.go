@@ -64,6 +64,15 @@ type PeerConn struct {
 // RarityContentType is the type of rarity array
 type RarityContentType uint16
 
+// ToIndexArray 将bitmap(_peerPieces)转成uint16数组
+func (cn *PeerConn) ToIndexArray() []RarityContentType {
+	res := make([]RarityContentType, cn.Torrent().numPieces())
+	for _, index := range cn._peerPieces.ToArray() {
+		res[index] = 1
+	}
+	return res
+}
+
 func (cn *PeerConn) peerImplStatusLines() []string {
 	return []string{fmt.Sprintf("%+-55q %s %s", cn.PeerID, cn.PeerExtensionBytes, cn.connString)}
 }
