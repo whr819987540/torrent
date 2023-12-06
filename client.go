@@ -714,6 +714,7 @@ func (cl *Client) initiateProtocolHandshakes(
 ) (
 	c *PeerConn, err error,
 ) {
+	// new peer connection
 	c = cl.newConnection(nc, newConnOpts)
 	c.headerEncrypted = encryptHeader
 	ctx, cancel := context.WithTimeout(ctx, cl.config.HandshakesTimeout)
@@ -747,6 +748,7 @@ func (cl *Client) establishOutgoingConnEx(t *Torrent, addr PeerRemoteAddr, obfus
 		return nil, errors.New("dial failed")
 	}
 	addrIpPort, _ := tryIpPortFromNetAddr(addr)
+	// connect to the peer
 	c, err := cl.initiateProtocolHandshakes(context.Background(), nc, t, obfuscatedHeader, newConnectionOpts{
 		outgoing:   true,
 		remoteAddr: addr,
@@ -766,6 +768,7 @@ func (cl *Client) establishOutgoingConnEx(t *Torrent, addr PeerRemoteAddr, obfus
 func (cl *Client) establishOutgoingConn(t *Torrent, addr PeerRemoteAddr) (c *PeerConn, err error) {
 	torrent.Add("establish outgoing connection", 1)
 	obfuscatedHeaderFirst := cl.config.HeaderObfuscationPolicy.Preferred
+	// connect to the peer
 	c, err = cl.establishOutgoingConnEx(t, addr, obfuscatedHeaderFirst)
 	if err == nil {
 		torrent.Add("initiated conn with preferred header obfuscation", 1)
@@ -790,6 +793,7 @@ func (cl *Client) establishOutgoingConn(t *Torrent, addr PeerRemoteAddr) (c *Pee
 // considered half-open.
 func (cl *Client) outgoingConnection(t *Torrent, addr PeerRemoteAddr, ps PeerSource, trusted bool) {
 	cl.dialRateLimiter.Wait(context.Background())
+	// connect to the peer
 	c, err := cl.establishOutgoingConn(t, addr)
 	if err == nil {
 		c.conn.SetWriteDeadline(time.Time{})

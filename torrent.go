@@ -2289,6 +2289,7 @@ func (t *Torrent) initiateConn(peer PeerInfo) {
 	}
 	t.cl.numHalfOpen++
 	t.halfOpen[addr.String()] = peer
+	// all peer connections are handled in a goroutine
 	go t.cl.outgoingConnection(t, addr, peer.Source, peer.Trusted)
 }
 
