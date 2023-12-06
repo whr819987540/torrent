@@ -180,6 +180,8 @@ type ClientConfig struct {
 	DisableWebseeds   bool
 
 	Callbacks Callbacks
+	
+	ServerAddr *net.TCPAddr
 }
 
 func (cfg *ClientConfig) SetListenAddr(addr string) *ClientConfig {

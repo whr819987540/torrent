@@ -669,6 +669,15 @@ func (c *Peer) receiveChunk(msg *pp.Message) error {
 
 	cl := t.cl
 
+	// peer -> t -> client, 在client那里存server的地址
+	// log if the chunk is from server
+	ip, _, _ := net.SplitHostPort(c.RemoteAddr.String())
+	if ip == c.t.cl.config.ServerAddr.IP.String() {
+		c.t.cl.stats.ChunksFromServer.Add(1)
+		c.t.stats.ChunksFromServer.Add(1)
+	}
+	c.logger.WithDefaultLevel(log.Debug).Printf("on receiving chunk, from %s, server %s", c.RemoteAddr.String(), c.t.cl.config.ServerAddr.String())
+
 	// Do we actually want this chunk?
 	if t.haveChunk(ppReq) {
 		// panic(fmt.Sprintf("%+v", ppReq))
