@@ -14,6 +14,7 @@ import (
 type Config struct {
 	Server struct {
 		ServerIP string `json:"ServerIP"`
+		ServerPort int `json:"ServerPort"`
 	} `json:"server"`
 	Client struct {
 		TotalPeers int   `json:"TotalPeers"`

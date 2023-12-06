@@ -1,6 +1,7 @@
 {
     "server": {
-        "ServerIP": "47.109.111.117" // PS的ip
+        "ServerIP": "47.109.111.117", // PS的ip
+        "ServerPort": 29601
     },
     "client": {
         "TotalPeers": 3, // 总节点数
