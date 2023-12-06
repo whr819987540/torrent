@@ -92,6 +92,8 @@ type Client struct {
 
 	activeAnnounceLimiter limiter.Instance
 	httpClient            *http.Client
+
+	PeerConns map[infohash.T]map[string]*PeerConn // only pointer is feasible
 }
 
 type ipStr string
