@@ -21,6 +21,7 @@ func (pc *PeerConn) initMessageWriter() {
 			if pc.closed.IsSet() {
 				return
 			}
+			// execute this function in an infinite loop
 			pc.fillWriteBuffer()
 		},
 		closed: &pc.closed,
@@ -36,7 +37,9 @@ func (pc *PeerConn) initMessageWriter() {
 }
 
 func (pc *PeerConn) startMessageWriter() {
+	// start communicating through peer connection
 	pc.initMessageWriter()
+	// this goroutine runs an infinite loop which updates the request order and makes the actual request
 	go pc.messageWriterRunner()
 }
 

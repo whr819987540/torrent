@@ -1629,6 +1629,7 @@ func (t *Torrent) onWebRtcConn(
 }
 
 func (t *Torrent) logRunHandshookConn(pc *PeerConn, logAll bool, level log.Level) {
+	// start communicating through peer connection
 	err := t.cl.runHandshookConn(pc, t)
 	if err != nil || logAll {
 		t.logger.WithDefaultLevel(level).Levelf(log.ErrorLevel(err), "error running handshook conn: %v", err)

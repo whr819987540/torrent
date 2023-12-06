@@ -812,6 +812,7 @@ func (cl *Client) outgoingConnection(t *Torrent, addr PeerRemoteAddr, ps PeerSou
 	defer c.close()
 	c.Discovery = ps
 	c.trusted = trusted
+	// start communicating through peer connection
 	t.runHandshookConnLoggingErr(c)
 }
 
@@ -1006,6 +1007,8 @@ func (cl *Client) runHandshookConn(c *PeerConn, t *Torrent) error {
 		return fmt.Errorf("adding connection: %w", err)
 	}
 	defer t.dropConnection(c)
+
+	// start communicating through peer connection
 	c.startMessageWriter()
 	cl.sendInitialMessages(c, t)
 	c.initUpdateRequestsTimer()

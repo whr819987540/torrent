@@ -263,6 +263,7 @@ func (cn *PeerConn) fillWriteBuffer() {
 		// can't do this in maybeUpdateActualRequestState because it's a method on Peer and has no
 		// knowledge of write buffers.
 	}
+	// updates the request order and makes the actual request
 	cn.maybeUpdateActualRequestState()
 	if cn.pex.IsEnabled() {
 		if flow := cn.pex.Share(cn.write); !flow {
