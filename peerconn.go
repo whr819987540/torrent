@@ -61,6 +61,9 @@ type PeerConn struct {
 	peerRequestDataAllocLimiter alloclim.Limiter
 }
 
+// RarityContentType is the type of rarity array
+type RarityContentType uint16
+
 func (cn *PeerConn) peerImplStatusLines() []string {
 	return []string{fmt.Sprintf("%+-55q %s %s", cn.PeerID, cn.PeerExtensionBytes, cn.connString)}
 }
