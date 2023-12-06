@@ -306,15 +306,17 @@ func (t *Torrent) appendConns(ret []*PeerConn, f func(*PeerConn) bool) []*PeerCo
 }
 
 func (t *Torrent) addPeer(p PeerInfo) (added bool) {
+	t.logger.WithDefaultLevel(log.Warning).Printf("try to add peer: %v", p)
 	cl := t.cl
 	torrent.Add(fmt.Sprintf("peers added by source %q", p.Source), 1)
 	if t.closed.IsSet() {
+		t.logger.WithDefaultLevel(log.Warning).Printf("add peer failed, as torrent has been closed")
 		return false
 	}
 	if ipAddr, ok := tryIpPortFromNetAddr(p.Addr); ok {
 		if cl.badPeerIPPort(ipAddr.IP, ipAddr.Port) {
 			torrent.Add("peers not added because of bad addr", 1)
-			// cl.logger.Printf("peers not added because of bad addr: %v", p)
+			t.logger.WithDefaultLevel(log.Warning).Printf("add peer failed for ip or port (%v) is bad", p.Addr.String())
 			return false
 		}
 	}
@@ -1317,18 +1319,23 @@ func (t *Torrent) openNewConns() (initiated int) {
 	defer t.updateWantPeersEvent()
 	for t.peers.Len() != 0 {
 		if !t.wantConns() {
+			t.logger.WithDefaultLevel(log.Debug).Printf("stop openNewConns when wantConns is false")
 			return
 		}
 		if len(t.halfOpen) >= t.maxHalfOpen() {
+			t.logger.WithDefaultLevel(log.Debug).Printf("stop openNewConns when half open for torrent exceeds maximum")
 			return
 		}
 		if len(t.cl.dialers) == 0 {
+			t.logger.WithDefaultLevel(log.Debug).Printf("stop openNewConns when torrent's client has no dialers")
 			return
 		}
 		if t.cl.numHalfOpen >= t.cl.config.TotalHalfOpenConns {
+			t.logger.WithDefaultLevel(log.Debug).Printf("stop openNewConns when half open for client %d exceeds maximum %d", t.cl.numHalfOpen, t.cl.config.TotalHalfOpenConns)
 			return
 		}
 		p := t.peers.PopMax()
+		// new peer connection starts from here
 		t.initiateConn(p)
 		initiated++
 	}
@@ -1842,7 +1849,10 @@ func (t *Torrent) dhtAnnouncer(s DhtServer) {
 func (t *Torrent) addPeers(peers []PeerInfo) (added int) {
 	for _, p := range peers {
 		if t.addPeer(p) {
+			t.logger.WithDefaultLevel(log.Warning).Printf("add peer success: %v", p)
 			added++
+		} else {
+			t.logger.WithDefaultLevel(log.Warning).Printf("add peer failed: %v", p)
 		}
 	}
 	return
@@ -2265,13 +2275,16 @@ func (t *Torrent) VerifyData() {
 // Start the process of connecting to the given peer for the given torrent if appropriate.
 func (t *Torrent) initiateConn(peer PeerInfo) {
 	if peer.Id == t.cl.peerID {
+		t.logger.WithDefaultLevel(log.Debug).Printf("stop initiateConn when peer is local peer")
 		return
 	}
 	if t.cl.badPeerAddr(peer.Addr) && !peer.Trusted {
+		t.logger.WithDefaultLevel(log.Debug).Printf("stop initiateConn when peer addr is bad")
 		return
 	}
 	addr := peer.Addr
 	if t.addrActive(addr.String()) {
+		t.logger.WithDefaultLevel(log.Debug).Printf("stop initiateConn when peer addr has been used")
 		return
 	}
 	t.cl.numHalfOpen++
