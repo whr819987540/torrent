@@ -284,6 +284,145 @@ func classifyByValueWithIndexRandomized(arr []RarityContentType, seed int64) []i
 	return res
 }
 
+func (p *Peer) getPieceRequestOrderByRarestFirst() []RequestIndex {
+	t := p.t
+	pc := p.t.cl.findPeerConnByTorrentAddr(t, p.RemoteAddr.String())
+	if pc == nil {
+		// this part of code may by executed before connecting to any peer
+		// so, just throw a warning
+		log.Fstr(
+			"FindPeerConnByTorrentAddr return nil, target is %s", p.RemoteAddr.String(),
+		).LogLevel(log.Warning, t.logger)
+		for _, tmp := range p.t.cl.findPeerConnsByTorrent(p.t) {
+			log.Fstr(
+				"FindPeerConnByTorrentAddr what can be found is %s, present is %s",
+				tmp.RemoteAddr.String(), p.RemoteAddr.String(),
+			).LogLevel(log.Warning, t.logger)
+		}
+		return nil
+	}
+
+	// 找到处理该torrent的所有peer
+	peers := p.t.cl.findPeerConnsByTorrent(p.t)
+	// rarity数组
+	rarity := make([]RarityContentType, p.t.numPieces())
+	// 创建peers的int数组
+	piecePossessionByPeers := make([][]RarityContentType, len(peers))
+	for i := 0; i < len(peers); i++ {
+		piecePossessionByPeer := peers[i].ToIndexArray()
+		// if peer HaveAll, piecePossessionByPeer is all-zero at any time
+		// else, piecePossessionByPeer is all-zero at the beginning
+		if peers[i].peerSentHaveAll {
+			for i := range piecePossessionByPeer {
+				piecePossessionByPeer[i] = 1
+			}
+		}
+		piecePossessionByPeers[i] = piecePossessionByPeer
+		// 基于peers数组计算rarity
+		for k, v := range piecePossessionByPeer {
+			rarity[k] += (1 - v)
+		}
+		// print peer and piecePossession
+		log.Fstr(
+			"%s piecePossession is %v",
+			peers[i].RemoteAddr.String(), piecePossessionByPeer,
+		).LogLevel(log.Debug, t.logger)
+	}
+
+	// randomSeed := time.Now().Unix()
+	// randomSeed := int64(p.remoteIpPort().Port)
+	randomSeed := p.t.cl.config.RandomSeed
+	// 根据rarity值对index进行排序(piece)
+	sortedRarityIndex := classifyByValueWithIndexRandomized(rarity, randomSeed)
+	log.Fstr(
+		"%s sortedRarityIndex is %v, random seed is %d",
+		p.RemoteAddr.String(), sortedRarityIndex, randomSeed,
+	).LogLevel(log.Debug, t.logger)
+
+	var presentPeerPiecePossession []RarityContentType
+	presentPeerPiecePossession = pc.ToIndexArray()
+	if pc.peerSentHaveAll {
+		// if peer HaveAll, presentPeerPiecePossession should all be set to one
+		for i := range presentPeerPiecePossession {
+			presentPeerPiecePossession[i] = 1
+		}
+		// if peer HaveAll, _peerPieces is empty
+		log.Fstr(
+			"%s HaveAll, _peerPieces is %v %v",
+			p.RemoteAddr.String(), pc._peerPieces.ToArray(), pc._peerPieces.IsEmpty(),
+		).LogLevel(log.Debug, t.logger)
+	}
+
+	// to avoid frequent array expansion by append operation, set the maximum array size
+	requests, numChunksUsed := make([]RequestIndex, t.numChunks()), 0            // 对该peer的chunk请求顺序
+	requestedPieceIndex, numPiecesUsed := make([]RequestIndex, t.numPieces()), 0 // 对该peer请求的chunk属于哪些piece
+	lastPieceIndex := t.numPieces() - 1
+	for i := 0; i < len(sortedRarityIndex); i++ {
+		presentPicesIndex := sortedRarityIndex[i]
+		// check the piece
+		if presentPeerPiecePossession[presentPicesIndex] != 1 {
+			// this peer doesn't has this piece
+			continue
+		}
+		// TODO: check the potential requests over again, which is done by adding more condition judgement
+		if t.pieceComplete(presentPicesIndex) {
+			// this piece has been completed
+			continue
+		}
+		if t.hashingPiece(presentPicesIndex) || t.pieceQueuedForHash(presentPicesIndex) {
+			// this piece is being or to be hashed
+			continue
+		}
+		requestedPieceIndex[numPiecesUsed] = RequestIndex(presentPicesIndex)
+		numPiecesUsed++
+
+		var chunksNum int // 该piece中有多少chunk
+		if presentPicesIndex != lastPieceIndex {
+			chunksNum = int(t.chunksPerRegularPiece())
+		} else {
+			chunksNum = int(t.pieceNumChunks(lastPieceIndex))
+		}
+		allowedFast := p.peerAllowedFast.Contains(presentPicesIndex)
+		for j := 0; j < chunksNum; j++ {
+			chunkIndex := RequestIndex(presentPicesIndex)*t.chunksPerRegularPiece() + RequestIndex(j)
+			// 当前peer已经请求该chunk
+			if p.requestState.Requests.Contains(chunkIndex) {
+				continue
+			}
+			// 当前client已完成该chunk
+			// ppReq:=types.Request{
+			// 	Index: presentPicesIndex*int(t.chunksPerRegularPiece()),
+			// 	Begin:j*int(t.chunkSize),
+			// 	Length:t.chunkSize,
+			// }
+			if t.haveChunk(t.requestIndexToRequest(chunkIndex)) {
+				continue
+			}
+			// check the chunks
+			if !allowedFast {
+				if p.peerChoking && !p.requestState.Requests.Contains(chunkIndex) {
+					// We can't request this right now.
+					continue
+				}
+			}
+			if p.requestState.Cancelled.Contains(chunkIndex) {
+				// Can't re-request while awaiting acknowledgement.
+				continue
+			}
+
+			requests[numChunksUsed] = chunkIndex
+			numChunksUsed++
+		}
+	}
+	requests = requests[:numChunksUsed]
+	requestedPieceIndex = requestedPieceIndex[:numPiecesUsed]
+	log.Fstr(
+		"%s piece bitmap: %v, present peer: %v, requestedPieceIndex is %v, request chunk indexes: %v",
+		p.RemoteAddr.String(), pc._peerPieces.ToArray(), t._completedPieces.ToArray(), requestedPieceIndex, requests,
+	).LogLevel(log.Debug, t.logger)
+	return requests
+}
+
 func (p *Peer) maybeUpdateActualRequestState() {
 	if p.closed.IsSet() {
 		return
