@@ -260,6 +260,7 @@ func (pc *PeerConn) writeInterested(interested bool) bool {
 	})
 }
 
+// _request sends the msg with type request
 func (me *PeerConn) _request(r Request) bool {
 	return me.write(pp.Message{
 		Type:   pp.Request,

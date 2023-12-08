@@ -457,6 +457,7 @@ func (cn *Peer) request(r RequestIndex) (more bool, err error) {
 	for _, f := range cn.callbacks.SentRequest {
 		f(PeerRequestEvent{cn, ppReq})
 	}
+	// send the request at last
 	return cn.peerImpl._request(ppReq), nil
 }
 
