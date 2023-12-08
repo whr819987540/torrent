@@ -244,6 +244,17 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 	return
 }
 
+func getMaxRarity(arr []RarityContentType) int {
+	// 获取最大的稀缺值
+	// 最大稀缺值+1即为分类数
+	// 如果数组为空, 返回-1, 后续不需要判断数组是否为空
+	maxRarity := -1
+	for _, element := range arr {
+		maxRarity = int(max(int64(maxRarity), int64(element)))
+	}
+	return maxRarity
+}
+
 func (p *Peer) maybeUpdateActualRequestState() {
 	if p.closed.IsSet() {
 		return
