@@ -36,6 +36,7 @@ type Config struct {
 	} `json:"tracker"`
 	TorrentLib struct {
 		Debug bool `json:"Debug"`
+		PieceSelectionStrategy string `json:"PieceSelectionStrategy"`
 	} `json:"torrentLib"`
 }
 
