@@ -776,6 +776,7 @@ func (c *PeerConn) mainReadLoop() (err error) {
 		// peer对chunk的请求(需要发送chunk, load from memory)
 		case pp.Request:
 			r := newRequestFromMessage(&msg)
+			// send chunk to that peer
 			err = c.onReadRequest(r, true)
 			if err != nil {
 				err = fmt.Errorf("on reading request %v: %w", r, err)
