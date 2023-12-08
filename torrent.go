@@ -1773,12 +1773,17 @@ func (t *Torrent) consumeDhtAnnouncePeers(pvs <-chan dht.PeersValues) {
 				Source: PeerSourceDhtGetPeers,
 			}) {
 				added++
+				t.logger.WithDefaultLevel(log.Debug).Printf(
+					"add peer %s from dht for %v", ipPortAddr{cp.IP, cp.Port}.String(), added, t.Name(),
+				)
 			}
 		}
 		cl.unlock()
-		// if added != 0 {
-		// 	log.Printf("added %v peers from dht for %v", added, t.InfoHash().HexString())
-		// }
+		if added != 0 {
+			t.logger.WithDefaultLevel(log.Debug).Printf(
+				"add %d peers from dht for %v", added, t.Name(),
+			)
+		}
 	}
 }
 
