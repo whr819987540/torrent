@@ -376,6 +376,7 @@ func (cn *PeerConn) peerSentBitfield(bf []bool) error {
 			panic(cn)
 		}
 		cn.peerSentHaveAll = false
+		// HaveAll indicates _peerPieces should be empty
 		if !cn._peerPieces.IsEmpty() {
 			panic("if peer has all, we expect no individual peer pieces to be set")
 		}
