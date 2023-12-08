@@ -520,6 +520,60 @@ func (aw *arrayWrapper[T]) Pop() T {
 	return ret
 }
 
+func (p *Peer) useRarityFirst() {
+	current := &p.requestState
+	t := p.t
+	more := true
+
+	requestHeap := newArrayWrapper(p.getPieceRequestOrderByRarestFirst())
+	originalRequestCount := current.Requests.GetCardinality()
+	// We're either here on a timer, or because we ran out of requests. Both are valid reasons to
+	// alter peakRequests.
+	if originalRequestCount != 0 && p.needRequestUpdate != peerUpdateRequestsTimerReason {
+		panic(fmt.Sprintf(
+			"expected zero existing requests (%v) for update reason %q",
+			originalRequestCount, p.needRequestUpdate))
+	}
+
+	for requestHeap.Len() != 0 && maxRequests(current.Requests.GetCardinality()+current.Cancelled.GetCardinality()) < p.nominalMaxRequests() {
+		req := requestHeap.Pop()
+		existing := t.requestingPeer(req)
+		// like tcp, don't cancel any previous request
+		// 已经向某个peer请求该chunk
+		if existing != nil {
+			log.Fstr("don't cancel request for chunk %d, present: %s, existing: %s", req, p.RemoteAddr.String(), existing.RemoteAddr.String()).LogLevel(log.Debug, t.logger)
+			continue
+		}
+		// 当前client已完成该chunk
+		if t.haveChunk(t.requestIndexToRequest(req)) {
+			log.Fstr("req %d has been completed.", req).LogLevel(log.Debug, t.logger)
+			continue
+		}
+
+		// chunk is the minimum request unit
+		more = p.mustRequest(req)
+		if !more {
+			break
+		}
+	}
+	// Check whether the error exists in log file
+	if !more {
+		// This might fail if we incorrectly determine that we can fit up to the maximum allowed
+		// requests into the available write buffer space. We don't want that to happen because it
+		// makes our peak requests dependent on how much was already in the buffer.
+		panic(fmt.Sprintf(
+			"couldn't fill apply entire request state [newRequests=%v]",
+			current.Requests.GetCardinality()-originalRequestCount))
+	}
+	newPeakRequests := maxRequests(current.Requests.GetCardinality() - originalRequestCount)
+	p.peakRequests = newPeakRequests
+	p.needRequestUpdate = ""
+	p.lastRequestUpdate = time.Now()
+	if enableUpdateRequestsTimer {
+		p.updateRequestsTimer.Reset(updateRequestsTimerDuration)
+	}
+}
+
 // This could be set to 10s to match the unchoke/request update interval recommended by some
 // specifications. I've set it shorter to trigger it more often for testing for now.
 const (
