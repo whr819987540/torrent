@@ -434,10 +434,9 @@ func (cn *Peer) mustRequest(r RequestIndex) bool {
 }
 
 func (cn *Peer) request(r RequestIndex) (more bool, err error) {
-	if err := cn.shouldRequest(r); err != nil {
-		panic(err)
-	}
+	// don't request a chunk if it's being requested
 	if cn.requestState.Requests.Contains(r) {
+		cn.logger.WithDefaultLevel(log.Debug).Printf("don't request %d as it's being requested.", r)
 		return true, nil
 	}
 	if maxRequests(cn.requestState.Requests.GetCardinality()) >= cn.nominalMaxRequests() {
