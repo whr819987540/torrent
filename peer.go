@@ -439,6 +439,11 @@ func (cn *Peer) request(r RequestIndex) (more bool, err error) {
 		cn.logger.WithDefaultLevel(log.Debug).Printf("don't request %d as it's being requested.", r)
 		return true, nil
 	}
+	// don't request a chunk if the piece it belongs to is completed
+	if cn.t._completedPieces.Contains(uint32(cn.t.pieceIndexOfRequestIndex(r))) {
+		cn.logger.WithDefaultLevel(log.Debug).Printf("don't request %d as piece %d it belongs to is completed.", r, uint32(cn.t.pieceIndexOfRequestIndex(r)))
+		return true, nil
+	}
 	if maxRequests(cn.requestState.Requests.GetCardinality()) >= cn.nominalMaxRequests() {
 		return true, errors.New("too many outstanding requests")
 	}
