@@ -14,6 +14,7 @@ func (t *Torrent) updatePieceRequestOrder(pieceIndex int) {
 }
 
 func (t *Torrent) clientPieceRequestOrderKey() interface{} {
+	// key is bind to storage
 	if t.storage.Capacity == nil {
 		return t
 	}

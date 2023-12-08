@@ -207,7 +207,7 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 	var it typedRoaring.Iterator[RequestIndex]
 	request_strategy.GetRequestablePieces(
 		input,
-		t.getPieceRequestOrder(),
+		t.getPieceRequestOrder(), // decide the order of pieces to request
 		func(ih InfoHash, pieceIndex int, pieceExtra request_strategy.PieceRequestOrderState) {
 			if ih != t.infoHash {
 				return
