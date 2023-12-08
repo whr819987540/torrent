@@ -440,9 +440,13 @@ func (p *Peer) maybeUpdateActualRequestState() {
 		context.Background(),
 		pprof.Labels("update request", p.needRequestUpdate),
 		func(_ context.Context) {
-			next := p.getDesiredRequestState()
-			p.applyRequestState(next)
-			p.t.requestIndexes = next.Requests.requestIndexes[:0]
+			if p.t.cl.config.PieceSelectionStrategy == request_strategy.RandomSelectionStrategy {
+				next := p.getDesiredRequestState()
+				p.applyRequestState(next)
+				p.t.requestIndexes = next.Requests.requestIndexes[:0]
+			} else if p.t.cl.config.PieceSelectionStrategy == request_strategy.RFSelectionStrategy {
+				p.useRarityFirst()
+			}
 		},
 	)
 }
