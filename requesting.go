@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/gob"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"runtime/pprof"
 	"time"
@@ -253,6 +254,34 @@ func getMaxRarity(arr []RarityContentType) int {
 		maxRarity = int(max(int64(maxRarity), int64(element)))
 	}
 	return maxRarity
+}
+
+func classifyByValueWithIndexRandomized(arr []RarityContentType, seed int64) []int {
+	// 1) classify by rarity and record the arr index as value in inverted arrays which represent different rarity values
+	maxRarity := getMaxRarity(arr)
+	bucktes := make([][]int, maxRarity+1)
+	for k, v := range arr {
+		bucktes[v] = append(bucktes[v], k)
+	}
+
+	res := make([]int, 0, len(arr))
+	rand.Seed(seed)
+	// traverse in descending order, as the indexes of buckets represent rarity
+	// bigger rarity, bigger priority
+	for i := len(bucktes) - 1; i >= 0; i-- {
+		indexes := bucktes[i]
+		// 2) randomize the inverted arrays
+		rand.Shuffle(
+			len(indexes),
+			// shuffle by swapping
+			func(i, j int) {
+				indexes[i], indexes[j] = indexes[j], indexes[i]
+			},
+		)
+		// 3) concatenate the inverted arrays sorted by rarity values in descending order
+		res = append(res, indexes...)
+	}
+	return res
 }
 
 func (p *Peer) maybeUpdateActualRequestState() {
