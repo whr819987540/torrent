@@ -86,6 +86,16 @@ func (cn *PeerConn) ipv6() bool {
 	return len(ip) == net.IPv6len
 }
 
+func (cn *PeerConn) LocalIpPort() IpPort {
+	ipa, _ := tryIpPortFromNetAddr(cn.conn.LocalAddr())
+	return IpPort{ipa.IP, uint16(ipa.Port)}
+}
+
+func (cn *PeerConn) RemoteIpPort() IpPort {
+	ipa, _ := tryIpPortFromNetAddr(cn.conn.RemoteAddr())
+	return IpPort{ipa.IP, uint16(ipa.Port)}
+}
+
 // Returns true the if the dialer/initiator has the lower client peer ID. TODO: Find the
 // specification for this.
 func (cn *PeerConn) isPreferredDirection() bool {
