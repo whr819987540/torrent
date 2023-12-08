@@ -15,6 +15,7 @@ import (
 
 	"github.com/anacrolix/torrent/iplist"
 	"github.com/anacrolix/torrent/mse"
+	request_strategy "github.com/anacrolix/torrent/request-strategy"
 	"github.com/anacrolix/torrent/storage"
 	"github.com/anacrolix/torrent/version"
 )
@@ -180,10 +181,12 @@ type ClientConfig struct {
 	DisableWebseeds   bool
 
 	Callbacks Callbacks
-	
+
 	RandomSeed int64
 
 	ServerAddr *net.TCPAddr
+
+	PieceSelectionStrategy request_strategy.PieceSelectionStrategyEnum
 }
 
 func (cfg *ClientConfig) SetListenAddr(addr string) *ClientConfig {
