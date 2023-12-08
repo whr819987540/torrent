@@ -181,6 +181,8 @@ type ClientConfig struct {
 
 	Callbacks Callbacks
 	
+	RandomSeed int64
+
 	ServerAddr *net.TCPAddr
 }
 
