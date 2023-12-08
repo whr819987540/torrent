@@ -683,6 +683,7 @@ func (c *Peer) receiveChunk(msg *pp.Message) error {
 	if t.haveChunk(ppReq) {
 		// panic(fmt.Sprintf("%+v", ppReq))
 		chunksReceived.Add("redundant", 1)
+		c.logger.WithDefaultLevel(log.Debug).Printf("redundant chunk %d from %s", req, c.RemoteAddr.String())
 		c.allStats(add(1, func(cs *ConnStats) *Count { return &cs.ChunksReadWasted }))
 		return nil
 	}
