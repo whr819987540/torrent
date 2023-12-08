@@ -67,6 +67,8 @@ func GetRequestablePieces(
 
 		ih := _i.key.InfoHash
 		t := input.Torrent(ih)
+		// check whether the left storage is sufficient
+		// if no storage is left, stop requesting, but is it useful?
 		pieceLength := t.PieceLength()
 		if storageLeft != nil {
 			if *storageLeft < pieceLength {
