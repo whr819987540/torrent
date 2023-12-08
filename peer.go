@@ -687,6 +687,7 @@ func (c *Peer) receiveChunk(msg *pp.Message) error {
 		c.allStats(add(1, func(cs *ConnStats) *Count { return &cs.ChunksReadWasted }))
 		return nil
 	}
+	c.logger.WithDefaultLevel(log.Debug).Printf("finish chunk %d from %s", req, c.RemoteAddr.String())
 
 	piece := &t.pieces[ppReq.Index]
 
