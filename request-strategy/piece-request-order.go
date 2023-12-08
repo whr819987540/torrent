@@ -79,3 +79,22 @@ func (me *PieceRequestOrder) Delete(key PieceRequestOrderKey) {
 func (me *PieceRequestOrder) Len() int {
 	return len(me.keys)
 }
+
+type PieceSelectionStrategyEnum int
+
+const (
+	RandomSelectionStrategy PieceSelectionStrategyEnum = 0
+	RFSelectionStrategy     PieceSelectionStrategyEnum = 1
+)
+
+var PieceSelectionStrategyMap = map[string]PieceSelectionStrategyEnum{
+	"random": RandomSelectionStrategy,
+	"rf":     RFSelectionStrategy,
+}
+
+func MapPieceSelectionStrategyEnum(strategy string) (PieceSelectionStrategyEnum, error) {
+	if value, exists := PieceSelectionStrategyMap[strategy]; exists {
+		return value, nil
+	}
+	return 0, fmt.Errorf("PieceSelectionStrategy %s not supported.", strategy)
+}
