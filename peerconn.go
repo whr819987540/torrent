@@ -352,6 +352,8 @@ func (cn *PeerConn) peerSentHave(piece pieceIndex) error {
 	return nil
 }
 
+// peerSentBitfield only traverses the bitfield sent by the peer
+// and update the wantPieceIndex, it doesn't make any chunk request
 func (cn *PeerConn) peerSentBitfield(bf []bool) error {
 	if len(bf)%8 != 0 {
 		panic("expected bitfield length divisible by 8")
@@ -768,6 +770,7 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			// appropriate, and is clearly specified.
 		case pp.Have:
 			err = c.peerSentHave(pieceIndex(msg.Index))
+		// what pieces the peer have
 		case pp.Bitfield:
 			err = c.peerSentBitfield(msg.Bitfield)
 		// peer对chunk的请求(需要发送chunk, load from memory)
