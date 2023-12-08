@@ -1,6 +1,10 @@
 package request_strategy
 
-import "github.com/anacrolix/torrent/metainfo"
+import (
+	"fmt"
+
+	"github.com/anacrolix/torrent/metainfo"
+)
 
 type Btree interface {
 	Delete(pieceRequestOrderItem)
