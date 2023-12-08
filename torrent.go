@@ -2492,6 +2492,7 @@ func (t *Torrent) requestIndexFromRequest(r Request) RequestIndex {
 	return t.pieceRequestIndexOffset(pieceIndex(r.Index)) + RequestIndex(r.Begin/t.chunkSize)
 }
 
+// pieceRequestIndexOffset returns the offset (consider all the chunks) of the first chunk in this piece
 func (t *Torrent) pieceRequestIndexOffset(piece pieceIndex) RequestIndex {
 	return RequestIndex(piece) * t.chunksPerRegularPiece()
 }
