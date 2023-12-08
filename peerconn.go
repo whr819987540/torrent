@@ -647,7 +647,7 @@ func (c *PeerConn) readPeerRequestData(r Request, prs *peerRequestState) ([]byte
 			// guarding against excessively large requests.
 			err = log.WithLevel(log.Critical, err)
 		}
-		err = fmt.Errorf("waiting for alloc limit reservation: %w", err)
+		err = fmt.Errorf("waiting for alloc limit reservation: %w, torrent is %s", err, c.t.Name())
 		return nil, err
 	}
 	b := make([]byte, r.Length)
