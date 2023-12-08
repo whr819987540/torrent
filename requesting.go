@@ -502,6 +502,24 @@ func (p *Peer) applyRequestState(next desiredRequestState) {
 	}
 }
 
+type arrayWrapper[T any] struct {
+	data []T
+}
+
+func newArrayWrapper[T any](data []T) *arrayWrapper[T] {
+	return &arrayWrapper[T]{data}
+}
+
+func (aw *arrayWrapper[T]) Len() int {
+	return len(aw.data)
+}
+
+func (aw *arrayWrapper[T]) Pop() T {
+	ret := aw.data[0]
+	aw.data = aw.data[1:]
+	return ret
+}
+
 // This could be set to 10s to match the unchoke/request update interval recommended by some
 // specifications. I've set it shorter to trigger it more often for testing for now.
 const (
