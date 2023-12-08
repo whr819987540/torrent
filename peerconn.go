@@ -54,7 +54,7 @@ type PeerConn struct {
 
 	// The pieces the peer has claimed to have.
 	_peerPieces roaring.Bitmap
-	// The peer has everything. This can occur due to a special message, when
+	// The peer has everything. This can occur due to a special message(HaveAll), when
 	// we may not even know the number of pieces in the torrent yet.
 	peerSentHaveAll bool
 
@@ -411,6 +411,8 @@ func (cn *PeerConn) peerSentBitfield(bf []bool) error {
 
 func (cn *PeerConn) onPeerHasAllPieces() {
 	t := cn.t
+	cn.logger.Levelf(log.Debug, "haveall %s", cn.RemoteAddr.String())
+	// HaveAll indicates _peerPieces should be empty
 	if t.haveInfo() {
 		cn._peerPieces.Iterate(func(x uint32) bool {
 			t.decPieceAvailability(pieceIndex(x))
@@ -418,6 +420,7 @@ func (cn *PeerConn) onPeerHasAllPieces() {
 		})
 	}
 	t.addConnWithAllPieces(&cn.Peer)
+	// HaveAll indicates the flag should be true
 	cn.peerSentHaveAll = true
 	cn._peerPieces.Clear()
 	if !cn.t._pendingPieces.IsEmpty() {
@@ -805,8 +808,11 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			torrent.Add("suggests received", 1)
 			log.Fmsg("peer suggested piece %d", msg.Index).AddValues(c, msg.Index).LogLevel(log.Debug, c.t.logger)
 			c.updateRequests("suggested")
+		// not only Bitfield shows peer's possession, but also haveall can indicate it
 		case pp.HaveAll:
+			c.logger.Levelf(log.Debug, "haveall %s", c.RemoteAddr.String())
 			err = c.onPeerSentHaveAll()
+			c.logger.Levelf(log.Debug, "haveall bitfield%s", c._peerPieces.ToArray())
 		case pp.HaveNone:
 			err = c.peerSentHaveNone()
 		case pp.Reject:
