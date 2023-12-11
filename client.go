@@ -539,6 +539,7 @@ func (cl *Client) rejectAccepted(conn net.Conn) error {
 
 func (cl *Client) acceptConnections(l Listener) {
 	for {
+		// listening socket accepts new active connections from other peers
 		conn, err := l.Accept()
 		torrent.Add("client listener accepts", 1)
 		conn = pproffd.WrapNetConn(conn)
@@ -594,6 +595,7 @@ func (cl *Client) incomingConnection(nc net.Conn) {
 		tc.SetLinger(0)
 	}
 	remoteAddr, _ := tryIpPortFromNetAddr(nc.RemoteAddr())
+	// create peer connection
 	c := cl.newConnection(
 		nc,
 		newConnectionOpts{
@@ -609,6 +611,7 @@ func (cl *Client) incomingConnection(nc net.Conn) {
 		c.close()
 	}()
 	c.Discovery = PeerSourceIncoming
+	// use created peer connection
 	cl.runReceivedConn(c)
 }
 
