@@ -460,6 +460,8 @@ func (p *Peer) applyRequestState(next desiredRequestState) {
 	}
 	more := true
 	requestHeap := binheap.FromSlice(next.Requests.requestIndexes, next.Requests.lessByValue)
+	// use this to get the cost of calculating rarity
+	// requestHexap := newArrayWrapper(p.getPieceRequestOrderByRarestFirst())
 	t := p.t
 	originalRequestCount := current.Requests.GetCardinality()
 	// We're either here on a timer, or because we ran out of requests. Both are valid reasons to
