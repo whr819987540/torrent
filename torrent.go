@@ -2562,6 +2562,7 @@ func (t *Torrent) iterUndirtiedRequestIndexesInPiece(
 	pieceRequestIndexOffset := t.pieceRequestIndexOffset(piece)
 	iterBitmapUnsetInRange(
 		reuseIter,
+		// traverse from the first chunk to the last chunk in this piece
 		pieceRequestIndexOffset, pieceRequestIndexOffset+t.pieceNumChunks(piece),
 		f,
 	)

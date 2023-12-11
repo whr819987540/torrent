@@ -236,6 +236,7 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 					// Can't re-request while awaiting acknowledgement.
 					return
 				}
+				// add the chunks of the piece
 				requestHeap.requestIndexes = append(requestHeap.requestIndexes, r)
 			})
 		},
@@ -483,6 +484,7 @@ func (p *Peer) applyRequestState(next desiredRequestState) {
 			t.cancelRequest(req)
 			log.Fstr("cancel request %s for chunk %d", existing.RemoteAddr.String(), req).LogLevel(log.Debug, t.logger)
 		}
+		// chunk is the minimum request unit
 		more = p.mustRequest(req)
 		if !more {
 			break
