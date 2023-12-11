@@ -1551,6 +1551,7 @@ func (cl *Client) newConnection(nc net.Conn, opts newConnectionOpts) (c *PeerCon
 	if opts.network == "" {
 		panic(opts.remoteAddr)
 	}
+	// really creates PeerConn
 	c = &PeerConn{
 		Peer: Peer{
 			outgoing:        opts.outgoing,
