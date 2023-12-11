@@ -479,7 +479,9 @@ func (p *Peer) applyRequestState(next desiredRequestState) {
 			if diff > 1 || (diff == 1 && p.lastUsefulChunkReceived.Before(existing.lastUsefulChunkReceived)) {
 				continue
 			}
+			// steal request from existing peer
 			t.cancelRequest(req)
+			log.Fstr("cancel request %s for chunk %d", existing.RemoteAddr.String(), req).LogLevel(log.Debug, t.logger)
 		}
 		more = p.mustRequest(req)
 		if !more {
