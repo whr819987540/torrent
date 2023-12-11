@@ -1637,6 +1637,7 @@ func (t *Torrent) logRunHandshookConn(pc *PeerConn, logAll bool, level log.Level
 }
 
 func (t *Torrent) runHandshookConnLoggingErr(pc *PeerConn) {
+	// this functions handles both received and outgoing PeerConn
 	t.logRunHandshookConn(pc, false, log.Debug)
 }
 
