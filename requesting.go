@@ -243,6 +243,10 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 	)
 	t.assertPendingRequests()
 	desired.Requests = requestHeap
+	log.Fstr(
+		"%s requestHeap(chunk) is %#v",
+		p.RemoteAddr.String(), requestHeap,
+	).LogLevel(log.Debug, t.logger)
 	return
 }
 
