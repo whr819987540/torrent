@@ -465,7 +465,10 @@ func (t *Torrent) pieceRequestOrderKey(i int) request_strategy.PieceRequestOrder
 
 // This seems to be all the follow-up tasks after info is set, that can't fail.
 func (t *Torrent) onSetInfo() {
+	// piece request order is just random
 	t.pieceRequestOrder = rand.Perm(t.numPieces())
+	log.Fstr("init piece request order: %v", t.pieceRequestOrder).LogLevel(log.Debug, t.logger)
+	// real piece request order
 	t.initPieceRequestOrder()
 	MakeSliceWithLength(&t.requestPieceStates, t.numPieces())
 	for i := range t.pieces {
@@ -476,7 +479,9 @@ func (t *Torrent) onSetInfo() {
 			panic(p.relativeAvailability)
 		}
 		p.relativeAvailability = t.selectivePieceAvailabilityFromPeers(i)
+		// add request to Btree
 		t.addRequestOrderPiece(i)
+		// update piece completion status
 		t.updatePieceCompletion(i)
 		if !t.initialPieceCheckDisabled && !p.storageCompletionOk {
 			// t.logger.Printf("piece %s completion unknown, queueing check", p)
