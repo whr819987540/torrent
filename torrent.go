@@ -1556,6 +1556,7 @@ func (t *Torrent) wantPeers() bool {
 	if t.peers.Len() > t.cl.config.TorrentPeersLowWater {
 		return false
 	}
+	t.logger.Printf("want conns")
 	return t.wantConns()
 }
 
@@ -1976,14 +1977,21 @@ func (t *Torrent) addPeerConn(c *PeerConn) (err error) {
 
 func (t *Torrent) wantConns() bool {
 	if !t.networkingEnabled.Bool() {
+		// t.logger.Printf("networkingEnabled")
 		return false
 	}
 	if t.closed.IsSet() {
+		// t.logger.Printf("torrent closed")
 		return false
 	}
 	if !t.needData() && (!t.seeding() || !t.haveAnyPieces()) {
+		if !t.needData() && !t.haveAnyPieces() {
+			t.logger.Levelf(log.Error, "t.needData()=%v,t.seeding()=%v,t.haveAnyPieces()=%v. Probably the seeded file or directory doesn't exist.", t.needData(), t.seeding(), t.haveAnyPieces())
+		}
+		t.logger.Printf("t.needData()=%v,t.seeding()=%v,t.haveAnyPieces()=%v", t.needData(), t.seeding(), t.haveAnyPieces())
 		return false
 	}
+	t.logger.Printf("len(t.conns)==%d, t.maxEstablishedConns==%d", len(t.conns), t.maxEstablishedConns)
 	return len(t.conns) < t.maxEstablishedConns || t.worstBadConn() != nil
 }
 
