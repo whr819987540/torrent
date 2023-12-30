@@ -192,7 +192,6 @@ func (me *trackerScraper) announce(ctx context.Context, event tracker.AnnounceEv
 		ClientIp6:           krpc.NodeAddr{IP: me.t.cl.config.PublicIp6},
 		Logger:              me.t.logger,
 	}.Do()
-	me.t.logger.WithDefaultLevel(log.Debug).Printf("announce to %q returned %#v: %v", me.u.String(), res, err)
 	if err != nil {
 		if Debug {
 			log.Printf("annouce error:%v", err)
