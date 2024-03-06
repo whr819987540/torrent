@@ -432,7 +432,9 @@ func (cn *Peer) shouldRequest(r RequestIndex) error {
 func (cn *Peer) mustRequest(r RequestIndex) bool {
 	more, err := cn.request(r)
 	if err != nil {
-		panic(err)
+		// err is from too many outstanding requests. As we adjust the maximum pending requests, so this error should be ignored.
+		// panic(err)
+		cn.logger.WithDefaultLevel(log.Warning).Printf("request %d failed: %s", r, err)
 	}
 	return more
 }
