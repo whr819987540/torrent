@@ -306,7 +306,7 @@ func (t *Torrent) appendConns(ret []*PeerConn, f func(*PeerConn) bool) []*PeerCo
 }
 
 func (t *Torrent) addPeer(p PeerInfo) (added bool) {
-	t.logger.WithDefaultLevel(log.Warning).Printf("try to add peer: %v", p)
+	t.logger.WithDefaultLevel(log.Debug).Printf("try to add peer: %v", p)
 	cl := t.cl
 	torrent.Add(fmt.Sprintf("peers added by source %q", p.Source), 1)
 	if t.closed.IsSet() {
@@ -316,7 +316,7 @@ func (t *Torrent) addPeer(p PeerInfo) (added bool) {
 	if ipAddr, ok := tryIpPortFromNetAddr(p.Addr); ok {
 		if cl.badPeerIPPort(ipAddr.IP, ipAddr.Port) {
 			torrent.Add("peers not added because of bad addr", 1)
-			t.logger.WithDefaultLevel(log.Warning).Printf("add peer failed for ip or port (%v) is bad", p.Addr.String())
+			t.logger.WithDefaultLevel(log.Info).Printf("add peer failed for ip or port (%v) is bad", p.Addr.String())
 			return false
 		}
 	}
@@ -1556,7 +1556,7 @@ func (t *Torrent) wantPeers() bool {
 	if t.peers.Len() > t.cl.config.TorrentPeersLowWater {
 		return false
 	}
-	t.logger.Printf("want conns")
+	t.logger.Levelf(log.Debug, "want conns")
 	return t.wantConns()
 }
 
@@ -1863,10 +1863,10 @@ func (t *Torrent) dhtAnnouncer(s DhtServer) {
 func (t *Torrent) addPeers(peers []PeerInfo) (added int) {
 	for _, p := range peers {
 		if t.addPeer(p) {
-			t.logger.WithDefaultLevel(log.Warning).Printf("add peer success: %v", p)
+			t.logger.WithDefaultLevel(log.Info).Printf("add peer success: %v", p)
 			added++
 		} else {
-			t.logger.WithDefaultLevel(log.Warning).Printf("add peer failed: %v", p)
+			t.logger.WithDefaultLevel(log.Info).Printf("add peer failed: %v", p)
 		}
 	}
 	return
@@ -1986,12 +1986,11 @@ func (t *Torrent) wantConns() bool {
 	}
 	if !t.needData() && (!t.seeding() || !t.haveAnyPieces()) {
 		if !t.needData() && !t.haveAnyPieces() {
-			t.logger.Levelf(log.Error, "t.needData()=%v,t.seeding()=%v,t.haveAnyPieces()=%v. Probably the seeded file or directory doesn't exist.", t.needData(), t.seeding(), t.haveAnyPieces())
+			t.logger.Levelf(log.Debug, "t.needData()=%v,t.seeding()=%v,t.haveAnyPieces()=%v. Probably the seeded file or directory doesn't exist.", t.needData(), t.seeding(), t.haveAnyPieces())
 		}
-		t.logger.Printf("t.needData()=%v,t.seeding()=%v,t.haveAnyPieces()=%v", t.needData(), t.seeding(), t.haveAnyPieces())
 		return false
 	}
-	t.logger.Printf("len(t.conns)==%d, t.maxEstablishedConns==%d", len(t.conns), t.maxEstablishedConns)
+	t.logger.Levelf(log.Debug, "len(t.conns)==%d, t.maxEstablishedConns==%d, t.needData()=%v, t.seeding()=%v, t.haveAnyPieces()=%v", len(t.conns), t.maxEstablishedConns, t.needData(), t.seeding(), t.haveAnyPieces())
 	return len(t.conns) < t.maxEstablishedConns || t.worstBadConn() != nil
 }
 
