@@ -1564,6 +1564,7 @@ func (cl *Client) newConnection(nc net.Conn, opts newConnectionOpts) (c *PeerCon
 			Network:         opts.network,
 			callbacks:       &cl.config.Callbacks,
 			PreferredTimeout: 10 * time.Second,
+			PieceSelectionStrategy: cl.config.PieceSelectionStrategy,
 		},
 		connString: opts.connString,
 		conn:       nc,
