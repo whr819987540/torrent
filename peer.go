@@ -923,6 +923,38 @@ func (p *Peer) decPeakRequests() {
 	p.peakRequests--
 }
 
+func (p *Peer) adjustPeerMaxRequests() {
+	// peer selection is only avaiable to RFSelectionStrategy
+	if p.PieceSelectionStrategy != request_strategy.RFSelectionStrategy {
+		return
+	}
+
+	T := time.Second * 3 // 1000ms
+	for {
+		before := p.stats().ChunksRead.Int64()
+		select {
+		case <-p.closed.Done():
+			return
+		case <-time.After(T):
+			after := p.stats().ChunksRead.Int64()
+			windowSize := maxRequests(after - before) // T内收到的chunk数
+			target := p.PeerMaxRequests
+			// p.PeerMaxRequests是最大请求数, 同时也是目标
+			// 如果完成部分目标, 则继续提高目标
+			// 否则维持不变, 或者缩减目标
+			// p.logger.WithDefaultLevel(log.Warning).Printf("windowSize: %d, PeerMaxRequests: %d", windowSize, p.PeerMaxRequests)
+			if windowSize >= maxInt(maxRequests(float64(target)*0.8), 3) {
+				p.PeerMaxRequests = maxRequests(float64(target) * 2)
+			} else if windowSize >= maxInt(maxRequests(float64(target)*0.6), 3) {
+				continue
+			} else {
+				// guarantee minimum value
+				p.PeerMaxRequests = int(float64(target) / 1.5)
+				p.PeerMaxRequests = maxInt(p.PeerMaxRequests, 5)
+			}
+		}
+	}
+}
 
 func (p *Peer) getTimeout(watch bool) time.Duration {
 	// 完成95%的piece后, 超时时间缩短
