@@ -1563,6 +1563,7 @@ func (cl *Client) newConnection(nc net.Conn, opts newConnectionOpts) (c *PeerCon
 			localPublicAddr: opts.localPublicAddr,
 			Network:         opts.network,
 			callbacks:       &cl.config.Callbacks,
+			PreferredTimeout: 10 * time.Second,
 		},
 		connString: opts.connString,
 		conn:       nc,
