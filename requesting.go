@@ -464,6 +464,12 @@ func (p *Peer) applyRequestState(next desiredRequestState) {
 	}
 	more := true
 	requestHeap := binheap.FromSlice(next.Requests.requestIndexes, next.Requests.lessByValue)
+	popOrder := make([]RequestIndex, requestHeap.Len())
+	for requestHeap.Len() != 0 {
+		popOrder = append(popOrder, requestHeap.Pop())
+	}
+	p.logger.WithDefaultLevel(log.Debug).Printf("server is %s, %s %v, pop order is %v", p.t.cl.config.ServerAddr, p.RemoteAddr.String(), requestHeap, popOrder)
+	requestHeap = binheap.FromSlice(next.Requests.requestIndexes, next.Requests.lessByValue)
 	// use this to get the cost of calculating rarity
 	// requestHexap := newArrayWrapper(p.getPieceRequestOrderByRarestFirst())
 	t := p.t
