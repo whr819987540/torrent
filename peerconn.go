@@ -867,7 +867,8 @@ func (c *PeerConn) onReadExtendedMsg(id pp.ExtensionNumber, payload []byte) (err
 		}
 		// c.logger.WithDefaultLevel(log.Debug).Printf("received extended handshake message:\n%s", spew.Sdump(d))
 		if d.Reqq != 0 {
-			c.PeerMaxRequests = d.Reqq
+			// c.logger.WithDefaultLevel(log.Warning).Printf("max requests recommended by peer: %d", d.Reqq)
+			// c.PeerMaxRequests = d.Reqq
 		}
 		c.PeerClientName.Store(d.V)
 		if c.PeerExtensionIDs == nil {
