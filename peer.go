@@ -103,6 +103,7 @@ type (
 		logger log.Logger
 
 		PreferredTimeout       time.Duration
+		PieceSelectionStrategy request_strategy.PieceSelectionStrategyEnum
 	}
 
 	PeerSource string
