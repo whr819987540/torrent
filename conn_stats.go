@@ -72,6 +72,10 @@ func (me *Count) MarshalJSON() ([]byte, error) {
 	return json.Marshal(me.n)
 }
 
+func (me Count) Value() int64 {
+	return me.n
+}
+
 func (cs *ConnStats) wroteMsg(msg *pp.Message) {
 	// TODO: Track messages and not just chunks.
 	switch msg.Type {
