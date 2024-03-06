@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"strings"
 	"sync/atomic"
@@ -919,4 +920,41 @@ func (p *Peer) decPeakRequests() {
 	// 	panic(p.peakRequests)
 	// }
 	p.peakRequests--
+}
+
+
+func (p *Peer) getTimeout(watch bool) time.Duration {
+	// 完成95%的piece后, 超时时间缩短
+	mostCompltedFlag := (p.t._completedPieces.GetCardinality() >= uint64(0.95*float64(p.t.numPieces())))
+	// 在完成95%之前, 不进行超时检查
+	if !mostCompltedFlag {
+		return math.MaxInt64
+	}
+
+	var ret time.Duration
+	if watch {
+		// for goroutine
+		if mostCompltedFlag {
+			// return 3 * time.Second
+			// ret = p.PreferredTimeout / 3
+			ret = p.PreferredTimeout / 3
+		} else {
+			// ret = p.PreferredTimeout / 2
+			ret = p.PreferredTimeout
+			// return 5 * time.Second
+		}
+	} else {
+		if mostCompltedFlag {
+			// return time.Duration(1.5 * float64(time.Second))
+			// ret = p.PreferredTimeout / 6
+			ret = p.PreferredTimeout / 3
+		} else {
+			ret = p.PreferredTimeout
+		}
+	}
+
+	if ret <= 3*time.Second {
+		ret = 3 * time.Second
+	}
+	return ret
 }
