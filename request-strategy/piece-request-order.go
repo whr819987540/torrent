@@ -89,11 +89,13 @@ type PieceSelectionStrategyEnum int
 const (
 	RandomSelectionStrategy PieceSelectionStrategyEnum = 0
 	RFSelectionStrategy     PieceSelectionStrategyEnum = 1
+	SequentialSelectionStrategy  PieceSelectionStrategyEnum = 2
 )
 
 var PieceSelectionStrategyMap = map[string]PieceSelectionStrategyEnum{
 	"random": RandomSelectionStrategy,
 	"rf":     RFSelectionStrategy,
+	"sequential": SequentialSelectionStrategy,
 }
 
 func MapPieceSelectionStrategyEnum(strategy string) (PieceSelectionStrategyEnum, error) {
