@@ -92,8 +92,6 @@ type Client struct {
 
 	activeAnnounceLimiter limiter.Instance
 	httpClient            *http.Client
-
-	PeerConns map[infohash.T]map[string]*PeerConn // only pointer is feasible
 }
 
 type ipStr string
@@ -240,7 +238,6 @@ func (cl *Client) init(cfg *ClientConfig) {
 	cl.config = cfg
 	g.MakeMap(&cl.dopplegangerAddrs)
 	cl.torrents = make(map[metainfo.Hash]*Torrent)
-	cl.PeerConns = make(map[infohash.T]map[string]*PeerConn)
 	cl.dialRateLimiter = rate.NewLimiter(10, 10)
 	cl.activeAnnounceLimiter.SlotsPerKey = 2
 	cl.event.L = cl.locker()
@@ -1052,14 +1049,6 @@ func (cl *Client) runHandshookConn(c *PeerConn, t *Torrent) error {
 	// help find PeerConn from Client
 	// FIXED: the RemoteAddr is not the listening port but the serving port if we initiate the connection actively
 	cl.logger.Levelf(log.Debug, "new peer connection local addr is %s, remote addr is %s", c.LocalIpPort().String(), c.RemoteIpPort().String())
-	// only add peer connection whose remote port not listening port
-	// as we assume that this kind of connections are actively established by local peer
-	if c.RemoteIpPort().Port != uint16(cl.config.ListenPort) {
-		if cl.PeerConns[t.infoHash] == nil {
-			cl.PeerConns[t.infoHash] = make(map[string]*PeerConn)
-		}
-		cl.PeerConns[t.infoHash][c.RemoteIpPort().IP.String()] = c
-	}
 
 	// start communicating through peer connection
 	c.startMessageWriter()
