@@ -445,11 +445,11 @@ func (p *Peer) maybeUpdateActualRequestState() {
 		context.Background(),
 		pprof.Labels("update request", p.needRequestUpdate),
 		func(_ context.Context) {
-			if p.t.cl.config.PieceSelectionStrategy == request_strategy.RandomSelectionStrategy {
+			if p.PieceSelectionStrategy == request_strategy.RandomSelectionStrategy {
 				next := p.getDesiredRequestState()
 				p.applyRequestState(next)
 				p.t.requestIndexes = next.Requests.requestIndexes[:0]
-			} else if p.t.cl.config.PieceSelectionStrategy == request_strategy.RFSelectionStrategy {
+			} else if p.PieceSelectionStrategy == request_strategy.RFSelectionStrategy {
 				p.useRarityFirst()
 			}
 		},
