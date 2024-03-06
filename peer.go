@@ -956,6 +956,84 @@ func (p *Peer) adjustPeerMaxRequests() {
 	}
 }
 
+// If time is out, cancel the request.
+// If timeout event is triggered, the peer's max request will be adjusted.
+// If timeout event is triggered, the peer's preferred timeout will be adjusted.
+func (pc *PeerConn) watchTimeout() {
+	// timeout control is only avaiable to RFSelectionStrategy
+	// if pc.PieceSelectionStrategy != request_strategy.RFSelectionStrategy && pc.PieceSelectionStrategy != request_strategy.SequencialSelectionStrategy  {
+	if pc.PieceSelectionStrategy != request_strategy.RFSelectionStrategy {
+		return
+	}
+	for {
+		select {
+		case <-pc.closed.Done():
+			// cancel all requests if the peer connection is closed
+			pc.locker().Lock()
+			toDelete := make([]RequestIndex, 0)
+			for k, v := range pc.t.requestState {
+				if v.peer == &pc.Peer && !pc.t.haveChunk(pc.t.requestIndexToRequest(k)) {
+					toDelete = append(toDelete, k)
+				}
+			}
+			for _, k := range toDelete {
+				pc.t.cancelRequest(k)
+				pc.logger.WithDefaultLevel(log.Warning).Printf("cancel request(%v) to %s ", k, pc.RemoteAddr.String())
+			}
+			pc.locker().Unlock()
+			return
+		// 每3s检查一次是否有超时
+		case <-time.After(3 * time.Second):
+			timeout := pc.getTimeout(true)
+			if timeout == math.MaxInt64 {
+				continue
+			}
+
+			pc.locker().Lock()
+			toDelete := make([]RequestIndex, 0)
+			timeoutFlag := false
+			checkFlag := false
+			for k, v := range pc.t.requestState {
+				pc.logger.WithDefaultLevel(log.Debug).Printf("%v %v %v", v.peer == &pc.Peer, !pc.t.haveChunk(pc.t.requestIndexToRequest(k)), time.Since(v.when).Seconds())
+				if v.peer == &pc.Peer && !pc.t.haveChunk(pc.t.requestIndexToRequest(k)) {
+					// 检查是否超时
+					timeout := pc.getTimeout(true)
+					timeoutFlag = time.Since(v.when) > timeout
+					checkFlag = true
+					if timeoutFlag {
+						pc.logger.WithDefaultLevel(log.Warning).Printf("cancel request(%v) to %s as timeout is %v > %v", k, pc.RemoteAddr.String(), time.Since(pc.t.requestState[k].when).Seconds(), pc.getTimeout(true))
+						toDelete = append(toDelete, k)
+						// 调整超时时间
+						pc.PreferredTimeout = time.Duration(float64(pc.PreferredTimeout) * 2)
+						if pc.PreferredTimeout.Seconds() >= 60 {
+							pc.PreferredTimeout = 60 * time.Second
+						}
+						pc.logger.WithDefaultLevel(log.Warning).Printf("%s timeout is %v", pc.RemoteAddr.String(), pc.PreferredTimeout)
+					}
+				}
+			}
+
+			if timeoutFlag {
+				// pc.PeerMaxRequests = maxRequests(float64(pc.PeerMaxRequests) / 1.5)
+				// pc.PeerMaxRequests = maxInt(3, pc.PeerMaxRequests)
+			} else {
+				// pc.PeerMaxRequests = maxRequests(float64(pc.PeerMaxRequests) * 2)
+				// 没有任何超时, 则缩短超时时间
+				if checkFlag {
+					pc.PreferredTimeout = time.Duration(float64(pc.PreferredTimeout) * 0.5)
+					if pc.PreferredTimeout.Seconds() <= 3 {
+						pc.PreferredTimeout = 3 * time.Second
+					}
+				}
+			}
+			for _, k := range toDelete {
+				pc.t.cancelRequest(k)
+			}
+			pc.locker().Unlock()
+		}
+	}
+}
+
 func (p *Peer) getTimeout(watch bool) time.Duration {
 	// 完成95%的piece后, 超时时间缩短
 	mostCompltedFlag := (p.t._completedPieces.GetCardinality() >= uint64(0.95*float64(p.t.numPieces())))
