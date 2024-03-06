@@ -549,14 +549,62 @@ func (p *Peer) useRarityFirst() {
 			originalRequestCount, p.needRequestUpdate))
 	}
 
+	timeoutFlag := false
 	for requestHeap.Len() != 0 && maxRequests(current.Requests.GetCardinality()+current.Cancelled.GetCardinality()) < p.nominalMaxRequests() {
 		req := requestHeap.Pop()
 		existing := t.requestingPeer(req)
+		timeout := p.getTimeout(false)
 		// like tcp, don't cancel any previous request
 		// 已经向某个peer请求该chunk
 		if existing != nil {
-			log.Fstr("don't cancel request for chunk %d, present: %s, existing: %s", req, p.RemoteAddr.String(), existing.RemoteAddr.String()).LogLevel(log.Debug, t.logger)
-			continue
+			// 进一步检查该请求是否已经超时
+			// If the timeout is too short, more redundant requests will be sent.
+			timeUsed := time.Since(t.requestState[req].when)
+			timeoutFlag = timeUsed > timeout
+			// if timeUsed >= 3 {
+			// // if timeUsed >= 1.5 {
+			// 	if existing != p {
+			// 		// 超时3秒, 并且有新的peer可以请求, 重新发送该请求
+			// 		t.cancelRequest(req)
+			// 	} else {
+			// 		// if timeUsed <= 5 {
+			// 		if timeUsed <= 5 {
+			// 			// 超时不足5秒, 没有新的peer可以请求, 不取消该请求
+			// 			continue
+			// 		} else {
+			// 			// 超时5秒, 即使没有新的peer可以请求, 也取消该请求
+			// 			t.cancelRequest(req)
+			// 		}
+			// 	}
+			// if timeUsed >= timeout {
+			// 	// 超时5s, 一定取消
+			// 	t.cancelRequest(req)
+			// 	p.logger.WithDefaultLevel(log.Warning).Printf("cancel request(%v) to %s as timeout is %v ", req, p.RemoteAddr.String(), timeUsed.Seconds())
+			// } else if timeUsed >= 3 {
+			// 	if existing != p {
+			// 		// 超时3s, 且有新的peer可以请求, 取消该请求
+			// 		t.cancelRequest(req)
+			// 		p.logger.WithDefaultLevel(log.Warning).Printf("cancel request(%v) to %s as timeout is %v ", req, p.RemoteAddr.String(), timeUsed.Seconds())
+			// 	} else {
+			// 		// 超时3s, 且没有新的peer可以请求, 不取消该请求
+			// 		continue
+			// 	}
+			// } else {
+			// 	// 超时不足3s, 不取消该请求
+			// 	log.Fstr("don't cancel request for chunk %d, present: %s, existing: %s", req, p.RemoteAddr.String(), existing.RemoteAddr.String()).LogLevel(log.Debug, t.logger)
+			// 	continue
+			// }
+			if timeoutFlag && existing != p {
+				t.cancelRequest(req)
+				p.logger.WithDefaultLevel(log.Warning).Printf("cancel request(%v) to %s as timeout is %v > %v", req, p.RemoteAddr.String(), timeUsed.Seconds(), timeout)
+				p.PreferredTimeout = time.Duration(float64(p.PreferredTimeout) * 2)
+				if p.PreferredTimeout.Seconds() >= 60 {
+					p.PreferredTimeout = 60 * time.Second
+				}
+				p.logger.WithDefaultLevel(log.Warning).Printf("%s timeout is %v", p.RemoteAddr.String(), p.PreferredTimeout)
+			} else {
+				continue
+			}
 		}
 		// 当前client已完成该chunk
 		if t.haveChunk(t.requestIndexToRequest(req)) {
