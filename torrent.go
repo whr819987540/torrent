@@ -166,6 +166,12 @@ type Torrent struct {
 	// Large allocations reused between request state updates.
 	requestPieceStates []request_strategy.PieceRequestOrderState
 	requestIndexes     []RequestIndex
+
+	// for sequential chunk request
+	left           RequestIndex
+	right          RequestIndex
+	sequentialLock sync.Mutex
+	movedChunk     []bool
 }
 
 func (t *Torrent) length() int64 {
