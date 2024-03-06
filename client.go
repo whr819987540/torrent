@@ -99,28 +99,39 @@ type Client struct {
 type ipStr string
 
 func (cl *Client) findPeerConnsByTorrent(t *Torrent) []*PeerConn {
-	pcs := make([]*PeerConn, 0, len(cl.PeerConns[t.infoHash]))
-	for _, v := range cl.PeerConns[t.infoHash] {
-		pcs = append(pcs, v)
+	// pcs := make([]*PeerConn, 0, len(cl.PeerConns[t.infoHash]))
+	pcs := make([]*PeerConn, 0, len(t.conns))
+	// for _, v := range cl.PeerConns[t.infoHash] {
+	// 	pcs = append(pcs, v)
+	// }
+	for c := range t.conns{
+		pcs = append(pcs, c)
 	}
 	return pcs
 }
 
 // more specifically, only ip is the key and port is ignored
-func (cl *Client) findPeerConnByAddr(pcs []*PeerConn, addr string) *PeerConn {
-	ip, _, _ := net.SplitHostPort(addr)
-	for _, pc := range pcs {
-		if pc.RemoteIpPort().IP.String() == ip {
-			return pc
-		}
-	}
-	return nil
+func (cl *Client) findPeerConnByAddr(pcs map[string]*PeerConn, addr string) *PeerConn {
+	// ip, _, _ := net.SplitHostPort(addr)
+	// for _, pc := range pcs {
+	// 	if pc.RemoteIpPort().IP.String() == ip {
+	// 		return pc
+	// 	}
+	// }
+	return pcs[addr]
 }
 
 // findPeerConnByTorrentAddr return PeerConn corresponding to the given torrent and addr
 func (cl *Client) findPeerConnByTorrentAddr(t *Torrent, addr string) *PeerConn {
-	pcs := cl.findPeerConnsByTorrent(t)
-	return cl.findPeerConnByAddr(pcs, addr)
+	// pcs := cl.PeerConns[t.infoHash]
+	// return cl.findPeerConnByAddr(pcs, addr)
+	for c := range t.conns {
+		ra := c.RemoteAddr
+		if ra.String() == addr {
+			return c
+		}
+	}
+	return nil
 }
 
 func (cl *Client) BadPeerIPs() (ips []string) {
