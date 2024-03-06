@@ -100,6 +100,8 @@ type (
 		PeerClientName   atomic.Value
 
 		logger log.Logger
+
+		PreferredTimeout       time.Duration
 	}
 
 	PeerSource string
