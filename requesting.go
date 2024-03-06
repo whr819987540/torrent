@@ -451,6 +451,8 @@ func (p *Peer) maybeUpdateActualRequestState() {
 				p.t.requestIndexes = next.Requests.requestIndexes[:0]
 			} else if p.PieceSelectionStrategy == request_strategy.RFSelectionStrategy {
 				p.useRarityFirst()
+			} else if p.PieceSelectionStrategy == request_strategy.SequentialSelectionStrategy {
+				p.sequentialRequest()
 			}
 		},
 	)
@@ -634,6 +636,123 @@ func (p *Peer) useRarityFirst() {
 			current.Requests.GetCardinality()-originalRequestCount))
 	}
 	newPeakRequests := maxRequests(current.Requests.GetCardinality() - originalRequestCount)
+	p.peakRequests = newPeakRequests
+	p.needRequestUpdate = ""
+	p.lastRequestUpdate = time.Now()
+	if enableUpdateRequestsTimer {
+		p.updateRequestsTimer.Reset(updateRequestsTimerDuration)
+	}
+}
+
+func (p *Peer) sequentialRequest() {
+	debugLevel := log.Debug
+
+	next := p.getDesiredRequestState()
+	if p.t.right == 0 {
+		if p.t.numChunks() < 100 {
+			p.t.right = p.t.numChunks()
+		} else {
+			p.t.right = RequestIndex(float64(p.t.numChunks()) * 0.4)
+		}
+	}
+	if len(p.t.movedChunk) == 0{
+		p.t.movedChunk = make([]bool, p.t.numChunks())
+	}
+
+	pc := p.t.cl.findPeerConnByTorrentAddr(p.t, p.RemoteAddr.String())
+	p.logger.WithDefaultLevel(debugLevel).Printf("%v %v", pc.peerSentHaveAll, pc._peerPieces.GetCardinality())
+
+	p.t.cl.logger.WithDefaultLevel(debugLevel).Printf("%d-%d-%d, %d", p.t.left, p.t.numChunks(), p.t.right, p.t.stats.ChunksReadUseful)
+	p.t.sequentialLock.Lock()
+	// move the boundary
+	moveFlag := true
+	for i := p.t.left; i < p.t.right; i++ {
+		req := p.t.requestIndexToRequest(i)
+		if p.t.haveChunk(req) {
+			if p.t.movedChunk[i]{
+				continue
+			}
+			p.t.movedChunk[i] = true
+			p.t.right++
+			if p.t.right > p.t.numChunks() {
+				p.t.right = p.t.numChunks()
+			}
+		} else {
+			moveFlag = false
+		}
+		if moveFlag {
+			p.t.left++
+		}
+	}
+	p.t.sequentialLock.Unlock()
+	p.t.cl.logger.WithDefaultLevel(debugLevel).Printf("%d %d %d", p.t.left, p.t.numChunks(), p.t.right)
+
+	current := &p.requestState
+	if !p.setInterested(next.Interested) {
+		panic("insufficient write buffer")
+	}
+	more := true
+	requestHeap := binheap.FromSlice(next.Requests.requestIndexes, next.Requests.lessByValue)
+	popOrder := make([]RequestIndex, requestHeap.Len())
+	for requestHeap.Len() != 0 {
+		popOrder = append(popOrder, requestHeap.Pop())
+	}
+	p.logger.WithDefaultLevel(debugLevel).Printf("server is %s, %s %v, pop order is %v", p.t.cl.config.ServerAddr, p.RemoteAddr.String(), requestHeap, popOrder)
+	requestHeap = binheap.FromSlice(next.Requests.requestIndexes, next.Requests.lessByValue)
+	t := p.t
+	originalRequestCount := current.Requests.GetCardinality()
+	// We're either here on a timer, or because we ran out of requests. Both are valid reasons to
+	// alter peakRequests.
+	if originalRequestCount != 0 && p.needRequestUpdate != peerUpdateRequestsTimerReason {
+		panic(fmt.Sprintf(
+			"expected zero existing requests (%v) for update reason %q",
+			originalRequestCount, p.needRequestUpdate))
+	}
+	for requestHeap.Len() != 0 && maxRequests(current.Requests.GetCardinality()+current.Cancelled.GetCardinality()) < p.nominalMaxRequests() {
+		req := requestHeap.Pop()
+		existing := t.requestingPeer(req)
+		if existing != nil && existing != p {
+			// Don't steal from the poor.
+			diff := int64(current.Requests.GetCardinality()) + 1 - (int64(existing.uncancelledRequests()) - 1)
+			// Steal a request that leaves us with one more request than the existing peer
+			// connection if the stealer more recently received a chunk.
+			// steal request from existing peer
+			if time.Since(p.t.requestState[req].when).Seconds() > 20 {
+				t.cancelRequest(req)
+				log.Fstr("cancel request %s for chunk %d", existing.RemoteAddr.String(), req).LogLevel(log.Debug, t.logger)
+			} else {
+				continue
+			}
+			if diff > 1 || (diff == 1 && p.lastUsefulChunkReceived.Before(existing.lastUsefulChunkReceived)) {
+				continue
+			} else {
+				t.cancelRequest(req)
+				log.Fstr("cancel request %s for chunk %d", existing.RemoteAddr.String(), req).LogLevel(log.Debug, t.logger)
+			}
+		}
+		// chunk is the minimum request unit
+		p.logger.WithDefaultLevel(debugLevel).Printf("left: %d, right: %d, req:%d.", p.t.left, p.t.right, req)
+		if req >= p.t.left && req < p.t.right {
+			more = p.mustRequest(req)
+			if !more {
+				break
+			}
+		} else {
+			continue
+		}
+	}
+	if !more {
+		// This might fail if we incorrectly determine that we can fit up to the maximum allowed
+		// requests into the available write buffer space. We don't want that to happen because it
+		// makes our peak requests dependent on how much was already in the buffer.
+		panic(fmt.Sprintf(
+			"couldn't fill apply entire request state [newRequests=%v]",
+			current.Requests.GetCardinality()-originalRequestCount))
+	}
+	newPeakRequests := maxRequests(current.Requests.GetCardinality() - originalRequestCount)
+	// log.Printf(
+	// 	"requests %v->%v (peak %v->%v) reason %q (peer %v)",
+	// 	originalRequestCount, current.Requests.GetCardinality(), p.peakRequests, newPeakRequests, p.needRequestUpdate, p)
 	p.peakRequests = newPeakRequests
 	p.needRequestUpdate = ""
 	p.lastRequestUpdate = time.Now()
