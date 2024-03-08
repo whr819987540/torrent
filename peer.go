@@ -430,7 +430,7 @@ func (cn *Peer) shouldRequest(r RequestIndex) error {
 }
 
 func (cn *Peer) mustRequest(r RequestIndex) bool {
-	cn.logger.WithDefaultLevel(log.Warning).Printf("must request %d", r)
+	cn.logger.WithDefaultLevel(log.Debug).Printf("must request %d", r)
 	more, err := cn.request(r)
 	if err != nil {
 		// err is from too many outstanding requests. As we adjust the maximum pending requests, so this error should be ignored.
@@ -441,6 +441,10 @@ func (cn *Peer) mustRequest(r RequestIndex) bool {
 }
 
 func (cn *Peer) request(r RequestIndex) (more bool, err error) {
+	// // TODO: recheck this after modifying the initialization of PeerConns
+	// if err := cn.shouldRequest(r); err != nil {
+	// 	panic(err)
+	// }
 	// don't request a chunk if it's being requested
 	if cn.requestState.Requests.Contains(r) {
 		cn.logger.WithDefaultLevel(log.Debug).Printf("don't request %d as it's being requested.", r)
@@ -954,6 +958,32 @@ func (p *Peer) adjustPeerMaxRequests() {
 				// guarantee minimum value
 				p.PeerMaxRequests = int(float64(target) / 1.5)
 				p.PeerMaxRequests = maxInt(p.PeerMaxRequests, 5)
+			}
+		}
+	}
+}
+
+func (p *Peer) adjustPieceSelectionStrategy() {
+	// peer selection adjustment is only avaiable to RFSelectionStrategy
+	if p.PieceSelectionStrategy != request_strategy.RFSelectionStrategy {
+		return
+	}
+
+	// 前5s执行random选择, 防止拥有稀缺chunk节点的压力太大
+	<-time.After(time.Second * 5)
+
+	T := time.Second * 3
+	for {
+		before := p.stats().ChunksRead.Int64()
+		select {
+		case <-p.closed.Done():
+			return
+		case <-time.After(T):
+			after := p.stats().ChunksRead.Int64()
+			if after-before == 0 {
+				p.t.cl.locker().Lock()
+				defer p.t.cl.locker().Unlock()
+				p.PieceSelectionStrategy = request_strategy.RandomSelectionStrategy
 			}
 		}
 	}
