@@ -261,7 +261,7 @@ func getMaxRarity(arr []RarityContentType) int {
 	return maxRarity
 }
 
-func classifyByValueWithIndexRandomized(arr []RarityContentType, seed int64) []int {
+func classifyByValueWithIndexRandomized(arr []RarityContentType, seed int64, pss request_strategy.PieceSelectionStrategyEnum) []int {
 	// 1) classify by rarity and record the arr index as value in inverted arrays which represent different rarity values
 	maxRarity := getMaxRarity(arr)
 	bucktes := make([][]int, maxRarity+1)
@@ -275,21 +275,23 @@ func classifyByValueWithIndexRandomized(arr []RarityContentType, seed int64) []i
 	// bigger rarity, bigger priority
 	for i := len(bucktes) - 1; i >= 0; i-- {
 		indexes := bucktes[i]
-		// 2) randomize the inverted arrays
-		rand.Shuffle(
-			len(indexes),
-			// shuffle by swapping
-			func(i, j int) {
-				indexes[i], indexes[j] = indexes[j], indexes[i]
-			},
-		)
+		if pss == request_strategy.RRFSelectionStrategy {
+			// 2) randomize the inverted arrays
+			rand.Shuffle(
+				len(indexes),
+				// shuffle by swapping
+				func(i, j int) {
+					indexes[i], indexes[j] = indexes[j], indexes[i]
+				},
+			)
+		}
 		// 3) concatenate the inverted arrays sorted by rarity values in descending order
 		res = append(res, indexes...)
 	}
 	return res
 }
 
-func (p *Peer) getPieceRequestOrderByRarestFirst() []RequestIndex {
+func (p *Peer) getPieceRequestOrderByRarestFirst(pss request_strategy.PieceSelectionStrategyEnum) []RequestIndex {
 	t := p.t
 	pc := p.t.cl.findPeerConnByTorrentAddr(t, p.RemoteAddr.String())
 	if pc == nil {
@@ -338,7 +340,7 @@ func (p *Peer) getPieceRequestOrderByRarestFirst() []RequestIndex {
 	// randomSeed := int64(p.remoteIpPort().Port)
 	randomSeed := p.t.cl.config.RandomSeed
 	// 根据rarity值对index进行排序(piece)
-	sortedRarityIndex := classifyByValueWithIndexRandomized(rarity, randomSeed)
+	sortedRarityIndex := classifyByValueWithIndexRandomized(rarity, randomSeed, pss)
 	log.Fstr(
 		"%s sortedRarityIndex is %v, random seed is %d",
 		p.RemoteAddr.String(), sortedRarityIndex, randomSeed,
@@ -449,8 +451,8 @@ func (p *Peer) maybeUpdateActualRequestState() {
 				next := p.getDesiredRequestState()
 				p.applyRequestState(next)
 				p.t.requestIndexes = next.Requests.requestIndexes[:0]
-			} else if p.PieceSelectionStrategy == request_strategy.RFSelectionStrategy {
-				p.useRarityFirst()
+			} else if p.PieceSelectionStrategy == request_strategy.RFSelectionStrategy || p.PieceSelectionStrategy == request_strategy.RRFSelectionStrategy {
+				p.useRarityFirst(p.PieceSelectionStrategy)
 			} else if p.PieceSelectionStrategy == request_strategy.SequentialSelectionStrategy {
 				p.sequentialRequest()
 			}
@@ -542,12 +544,13 @@ func (aw *arrayWrapper[T]) Pop() T {
 	return ret
 }
 
-func (p *Peer) useRarityFirst() {
+func (p *Peer) useRarityFirst(pss request_strategy.PieceSelectionStrategyEnum) {
+	// 进一步细分为RF与RRF
 	current := &p.requestState
 	t := p.t
 	more := true
 
-	requestHeap := newArrayWrapper(p.getPieceRequestOrderByRarestFirst())
+	requestHeap := newArrayWrapper(p.getPieceRequestOrderByRarestFirst(pss))
 	originalRequestCount := current.Requests.GetCardinality()
 	// We're either here on a timer, or because we ran out of requests. Both are valid reasons to
 	// alter peakRequests.
