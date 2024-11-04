@@ -41,7 +41,7 @@ func (pc *PeerConn) startMessageWriter() {
 	pc.initMessageWriter()
 	// this goroutine runs an infinite loop which updates the request order and makes the actual request
 	go pc.messageWriterRunner()
-	// this goroutine adjusts the number of maximum pending requests s that can be made to the peer
+	// this goroutine adjusts the number of maximum pending requests that can be made to the peer
 	go pc.adjustPeerMaxRequests()
 	// this goroutine checks timed-out requests for the peer connection until the peer connection is closed
 	go pc.watchTimeout()
